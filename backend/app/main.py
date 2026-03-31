@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException, Body
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from io import BytesIO
+import qrcode
 
 from .db import engine, SessionLocal
 from .models import Base, Location, LocationCounter, Item, Asset, AssetMovement
@@ -197,6 +200,26 @@ def get_asset_by_code(inventory_code: str):
     if not asset:
         raise HTTPException(status_code=404, detail="Asset non trovato")
     return asset
+
+@app.get("/assets/{inventory_code}/qr")
+def get_asset_qr(inventory_code: str):
+    db = SessionLocal()
+
+    asset = db.query(Asset).filter(Asset.inventory_code == inventory_code).first()
+    db.close()
+
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset non trovato")
+
+    url = f"http://localhost:8000/assets/{inventory_code}"
+
+    qr = qrcode.make(url)
+
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    buffer.seek(0)
+
+    return StreamingResponse(buffer, media_type="image/png")
 
 @app.get("/assets/{asset_id}/history")
 def asset_history(asset_id: int):

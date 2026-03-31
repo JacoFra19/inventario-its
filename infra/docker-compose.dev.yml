@@ -17,7 +17,7 @@ services:
     container_name: inventario-api
     working_dir: /app
     volumes:
-      - C:/dev/inventario-its/backend:/app:rw
+      - ../backend:/app:rw
     environment:
       DATABASE_URL: postgresql+psycopg://inventario:inventario@db:5432/inventario
     ports:
