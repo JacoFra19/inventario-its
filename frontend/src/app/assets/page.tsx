@@ -109,18 +109,27 @@ export default function AssetsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
-      <div className="mb-8">
-        <a href="/" className="text-blue-600 hover:underline">
-          ← Dashboard
-        </a>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <a href="/" className="text-blue-600 hover:underline">
+            ← Dashboard
+          </a>
 
-        <h1 className="mt-4 text-3xl font-bold">Asset</h1>
-        <p className="text-gray-600">
-          Gestione beni inventariati, codici univoci e QR.
-        </p>
+          <h1 className="mt-4 text-3xl font-bold">Asset</h1>
+          <p className="text-gray-600">
+            Gestione beni inventariati, codici univoci e QR.
+          </p>
+        </div>
+
+        <a
+          href="/scan"
+          className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white shadow hover:bg-black"
+        >
+          Apri Scanner QR
+        </a>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-2xl bg-white p-5 shadow">
           <p className="text-sm text-gray-500">Asset totali</p>
           <p className="text-3xl font-bold">{assets.length}</p>
@@ -137,6 +146,13 @@ export default function AssetsPage() {
           <p className="text-sm text-gray-500">Assegnati</p>
           <p className="text-3xl font-bold">
             {assets.filter((a) => a.status === "ASSEGNATO").length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow">
+          <p className="text-sm text-gray-500">Sedi usate</p>
+          <p className="text-3xl font-bold">
+            {new Set(assets.map((a) => a.current_location_id)).size}
           </p>
         </div>
       </div>
