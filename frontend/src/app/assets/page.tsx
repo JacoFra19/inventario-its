@@ -21,6 +21,7 @@ export default function AssetsPage() {
   const [locationCode, setLocationCode] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
   const [newItemName, setNewItemName] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("");
@@ -91,6 +92,20 @@ export default function AssetsPage() {
     const location = locations.find((l) => l.id === id);
     return location ? `${location.code} - ${location.name}` : id;
   }
+
+  const filteredAssets = assets.filter((asset) => {
+    const text = [
+      asset.inventory_code,
+      asset.status,
+      asset.assigned_to ?? "",
+      asset.notes ?? "",
+      locationLabel(asset.current_location_id),
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return text.includes(search.toLowerCase());
+  });
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -210,6 +225,21 @@ export default function AssetsPage() {
         </form>
       </section>
 
+      <section className="mb-4 rounded-2xl bg-white p-6 shadow">
+        <label className="mb-2 block text-sm font-medium text-gray-600">
+          Ricerca asset
+        </label>
+        <input
+          className="w-full rounded-xl border p-3 shadow-sm"
+          placeholder="Cerca per codice, sede, stato, assegnatario o note..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <p className="mt-2 text-sm text-gray-500">
+          {filteredAssets.length} asset trovati
+        </p>
+      </section>
+
       <section className="overflow-hidden rounded-2xl bg-white shadow">
         <table className="min-w-full">
           <thead className="bg-gray-100">
@@ -224,7 +254,7 @@ export default function AssetsPage() {
           </thead>
 
           <tbody>
-            {assets.map((asset) => (
+            {filteredAssets.map((asset) => (
               <tr key={asset.id} className="border-t hover:bg-gray-50">
                 <td className="p-4">{asset.id}</td>
                 <td className="p-4 font-mono">
