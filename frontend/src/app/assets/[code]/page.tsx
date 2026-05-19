@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAssetHistory, transferAsset, type AssetMovement } from "@/lib/api";
+import {
+  assignAsset,
+  getAssetHistory,
+  transferAsset,
+  unassignAsset,
+  type AssetMovement,
+} from "@/lib/api";
 
 type Asset = {
   id: number;
@@ -29,7 +35,9 @@ export default function AssetDetailPage({ params }: Props) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [history, setHistory] = useState<AssetMovement[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -50,6 +58,7 @@ export default function AssetDetailPage({ params }: Props) {
       const locationsData = await locationsRes.json();
 
       setAsset(assetData);
+      setAssignedTo(assetData.assigned_to ?? "");
       setLocations(locationsData);
 
       const historyData = await getAssetHistory(assetData.id);
@@ -92,6 +101,47 @@ export default function AssetDetailPage({ params }: Props) {
       alert("Errore durante il trasferimento. Controlla console/backend.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAssign() {
+    if (!asset || !assignedTo.trim()) return;
+
+    setAssignLoading(true);
+
+    try {
+      const updatedAsset = await assignAsset({
+        assetId: asset.id,
+        assignedTo: assignedTo.trim(),
+      });
+
+      setAsset(updatedAsset);
+      setAssignedTo(updatedAsset.assigned_to ?? "");
+      alert("Asset assegnato correttamente");
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante l'assegnazione. Controlla console/backend.");
+    } finally {
+      setAssignLoading(false);
+    }
+  }
+
+  async function handleUnassign() {
+    if (!asset) return;
+
+    setAssignLoading(true);
+
+    try {
+      const updatedAsset = await unassignAsset(asset.id);
+
+      setAsset(updatedAsset);
+      setAssignedTo("");
+      alert("Assegnazione rimossa correttamente");
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante la rimozione dell'assegnazione. Controlla console/backend.");
+    } finally {
+      setAssignLoading(false);
     }
   }
 
@@ -186,6 +236,37 @@ export default function AssetDetailPage({ params }: Props) {
               className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? "Trasferisco..." : "Trasferisci"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+          <h2 className="mb-4 text-xl font-bold">
+            Assegnazione a personale
+          </h2>
+
+          <div className="flex flex-col gap-4 md:flex-row">
+            <input
+              className="flex-1 rounded-xl border p-3"
+              placeholder="Es. Segreteria, Tutor sede, Ufficio comunicazione..."
+              value={assignedTo}
+              onChange={(e) => setAssignedTo(e.target.value)}
+            />
+
+            <button
+              onClick={handleAssign}
+              disabled={assignLoading || !assignedTo.trim()}
+              className="rounded-xl bg-gray-900 px-6 py-3 font-semibold text-white hover:bg-black disabled:opacity-50"
+            >
+              {assignLoading ? "Salvo..." : "Assegna"}
+            </button>
+
+            <button
+              onClick={handleUnassign}
+              disabled={assignLoading || !asset.assigned_to}
+              className="rounded-xl border px-6 py-3 font-semibold hover:bg-white disabled:opacity-50"
+            >
+              Rimuovi
             </button>
           </div>
         </div>

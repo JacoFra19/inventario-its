@@ -138,3 +138,46 @@ export async function getAssetHistory(assetId: number): Promise<AssetMovement[]>
 
   return res.json();
 }
+
+export async function assignAsset(input: {
+  assetId: number;
+  assignedTo: string;
+  notes?: string;
+}) {
+  const res = await fetch(
+    `${API_BASE}/assets/${input.assetId}/assign`,
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        assigned_to: input.assignedTo,
+        notes: input.notes ?? null,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function unassignAsset(assetId: number) {
+  const res = await fetch(
+    `${API_BASE}/assets/${assetId}/unassign`,
+    {
+      method: "POST",
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}

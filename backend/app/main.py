@@ -171,23 +171,52 @@ def assign_asset(
 ):
     db = SessionLocal()
 
-    asset = db.query(Asset).filter(Asset.id == asset_id).first()
+    try:
+        asset = db.query(Asset).filter(Asset.id == asset_id).first()
 
-    if not asset:
-        raise HTTPException(status_code=404, detail="Asset non trovato")
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset non trovato")
 
-    asset.assigned_to = assigned_to
-    asset.status = "ASSEGNATO"
+        asset.assigned_to = assigned_to.strip()
+        asset.status = "ASSEGNATO"
 
-    if notes:
-        asset.notes = notes
+        if notes:
+            asset.notes = notes
 
-    db.commit()
-    db.refresh(asset)
+        db.commit()
+        db.refresh(asset)
 
-    db.close()
+        return asset
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
-    return asset
+
+# Unassign endpoint
+@app.post("/assets/{asset_id}/unassign")
+def unassign_asset(asset_id: int):
+    db = SessionLocal()
+
+    try:
+        asset = db.query(Asset).filter(Asset.id == asset_id).first()
+
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset non trovato")
+
+        asset.assigned_to = None
+        asset.status = "IN_SEDE"
+
+        db.commit()
+        db.refresh(asset)
+
+        return asset
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 @app.get("/assets")
 def list_assets():
