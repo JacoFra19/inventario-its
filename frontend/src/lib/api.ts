@@ -23,6 +23,24 @@ export type Location = {
   name: string;
 };
 
+export type StockCard = {
+  id: number;
+  item_id: number;
+  location_id: number;
+  quantity: number;
+  min_threshold: number;
+  notes: string | null;
+};
+
+export type StockMovement = {
+  id: number;
+  stock_card_id: number;
+  movement_type: string;
+  quantity: number;
+  notes: string | null;
+  created_at: string;
+};
+
 export async function getAssets(): Promise<Asset[]> {
   const res = await fetch(`${API_BASE}/assets`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero degli asset");
@@ -38,6 +56,90 @@ export async function getItems(): Promise<Item[]> {
 export async function getLocations(): Promise<Location[]> {
   const res = await fetch(`${API_BASE}/locations`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero delle sedi");
+  return res.json();
+}
+
+export async function getStocks(): Promise<StockCard[]> {
+  const res = await fetch(`${API_BASE}/stocks`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero degli stock");
+  }
+
+  return res.json();
+}
+
+export async function createStock(input: {
+  itemId: number;
+  locationCode: string;
+  quantity: number;
+  minThreshold: number;
+  notes?: string;
+}) {
+  const res = await fetch(`${API_BASE}/stocks`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      item_id: input.itemId,
+      location_code: input.locationCode,
+      quantity: input.quantity,
+      min_threshold: input.minThreshold,
+      notes: input.notes ?? null,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function createStockMovement(input: {
+  stockId: number;
+  movementType: "LOAD" | "UNLOAD" | "RETURN" | "ADJUST";
+  quantity: number;
+  notes?: string;
+}) {
+  const res = await fetch(
+    `${API_BASE}/stocks/${input.stockId}/movement`,
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        movement_type: input.movementType,
+        quantity: input.quantity,
+        notes: input.notes ?? null,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function getStockHistory(
+  stockId: number
+): Promise<StockMovement[]> {
+  const res = await fetch(`${API_BASE}/stocks/${stockId}/history`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
   return res.json();
 }
 
@@ -117,7 +219,7 @@ export async function transferAsset(input: {
   return res.json();
 }
 
-export type AssetMovement = {
+export type AssetTransferMovement = {
   id: number;
   asset_id: number;
   from_location_id: number | null;
@@ -127,7 +229,7 @@ export type AssetMovement = {
   notes: string | null;
 };
 
-export async function getAssetHistory(assetId: number): Promise<AssetMovement[]> {
+export async function getAssetHistory(assetId: number): Promise<AssetTransferMovement[]> {
   const res = await fetch(`${API_BASE}/assets/${assetId}/history`, {
     cache: "no-store",
   });

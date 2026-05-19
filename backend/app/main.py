@@ -7,7 +7,7 @@ from io import BytesIO
 import qrcode
 
 from .db import engine, SessionLocal
-from .models import Base, Location, LocationCounter, Item, Asset, AssetMovement
+from .models import Base, Location, LocationCounter, Item, Asset, AssetMovement, StockCard, StockMovement
 from .seed import seed_locations
 
 app = FastAPI(title="Inventario ITS", version="0.2.0")
@@ -291,5 +291,156 @@ def search_assets(q: str):
             )
         )
     ).scalars().all()
+    db.close()
+    return rows
+
+
+# --- STOCKS ENDPOINTS ---
+
+@app.get("/stocks")
+def list_stocks():
+    db = SessionLocal()
+    rows = db.query(StockCard).all()
+    db.close()
+    return rows
+
+
+@app.post("/stocks")
+def create_stock_card(
+    item_id: int = Body(...),
+    location_code: str = Body(...),
+    quantity: int = Body(0),
+    min_threshold: int = Body(0),
+    notes: str | None = Body(None),
+):
+    db = SessionLocal()
+
+    try:
+        item = db.execute(select(Item).where(Item.id == item_id)).scalar_one_or_none()
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Item non trovato: {item_id}")
+
+        if item.is_serialized:
+            raise HTTPException(
+                status_code=400,
+                detail="Questo item è serializzato: usa /assets per creare beni inventariati singolarmente."
+            )
+
+        location = db.execute(select(Location).where(Location.code == location_code)).scalar_one_or_none()
+        if not location:
+            raise HTTPException(status_code=404, detail=f"Sede non trovata: {location_code}")
+
+        existing = db.execute(
+            select(StockCard).where(
+                StockCard.item_id == item.id,
+                StockCard.location_id == location.id,
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="Esiste già una scheda stock per questo item in questa sede."
+            )
+
+        if quantity < 0:
+            raise HTTPException(status_code=400, detail="La quantità iniziale non può essere negativa.")
+
+        if min_threshold < 0:
+            raise HTTPException(status_code=400, detail="La soglia minima non può essere negativa.")
+
+        stock = StockCard(
+            item_id=item.id,
+            location_id=location.id,
+            quantity=quantity,
+            min_threshold=min_threshold,
+            notes=notes,
+        )
+        db.add(stock)
+        db.flush()
+
+        if quantity > 0:
+            movement = StockMovement(
+                stock_card_id=stock.id,
+                movement_type="LOAD",
+                quantity=quantity,
+                notes="Carico iniziale",
+            )
+            db.add(movement)
+
+        db.commit()
+        db.refresh(stock)
+        return stock
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.post("/stocks/{stock_id}/movement")
+def create_stock_movement(
+    stock_id: int,
+    movement_type: str = Body(...),
+    quantity: int = Body(...),
+    notes: str | None = Body(None),
+):
+    db = SessionLocal()
+
+    try:
+        stock = db.execute(select(StockCard).where(StockCard.id == stock_id)).scalar_one_or_none()
+        if not stock:
+            raise HTTPException(status_code=404, detail=f"Scheda stock non trovata: {stock_id}")
+
+        movement_type = movement_type.upper().strip()
+        allowed = {"LOAD", "UNLOAD", "RETURN", "ADJUST"}
+        if movement_type not in allowed:
+            raise HTTPException(
+                status_code=400,
+                detail="Tipo movimento non valido. Usa LOAD, UNLOAD, RETURN o ADJUST."
+            )
+
+        if quantity < 0:
+            raise HTTPException(status_code=400, detail="La quantità non può essere negativa.")
+
+        if movement_type in {"LOAD", "RETURN"}:
+            stock.quantity += quantity
+        elif movement_type == "UNLOAD":
+            if quantity > stock.quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Quantità insufficiente per lo scarico."
+                )
+            stock.quantity -= quantity
+        elif movement_type == "ADJUST":
+            stock.quantity = quantity
+
+        movement = StockMovement(
+            stock_card_id=stock.id,
+            movement_type=movement_type,
+            quantity=quantity,
+            notes=notes,
+        )
+        db.add(movement)
+
+        db.commit()
+        db.refresh(stock)
+        return stock
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.get("/stocks/{stock_id}/history")
+def stock_history(stock_id: int):
+    db = SessionLocal()
+    rows = (
+        db.query(StockMovement)
+        .filter(StockMovement.stock_card_id == stock_id)
+        .order_by(StockMovement.created_at.desc())
+        .all()
+    )
     db.close()
     return rows

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, UniqueConstraint
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, UniqueConstraint, DateTime
 from sqlalchemy.orm import relationship
 from .db import Base
 
@@ -49,9 +50,6 @@ class Asset(Base):
     item = relationship("Item")
     current_location = relationship("Location")
 
-from sqlalchemy import DateTime
-from datetime import datetime
-
 class AssetMovement(Base):
     __tablename__ = "asset_movements"
 
@@ -69,4 +67,38 @@ class AssetMovement(Base):
 
     asset = relationship("Asset")
     from_location = relationship("Location", foreign_keys=[from_location_id])
-    to_location = relationship("Location", foreign_keys=[to_location_id])    
+    to_location = relationship("Location", foreign_keys=[to_location_id])
+
+class StockCard(Base):
+    __tablename__ = "stock_cards"
+
+    __table_args__ = (
+        UniqueConstraint("item_id", "location_id", name="uq_stock_item_location"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    item_id = Column(Integer, ForeignKey("items.id"), nullable=False, index=True)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False, index=True)
+
+    quantity = Column(Integer, nullable=False, default=0)
+    min_threshold = Column(Integer, nullable=False, default=0)
+    notes = Column(String(500), nullable=True)
+
+    item = relationship("Item")
+    location = relationship("Location")
+
+
+class StockMovement(Base):
+    __tablename__ = "stock_movements"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    stock_card_id = Column(Integer, ForeignKey("stock_cards.id"), nullable=False, index=True)
+    movement_type = Column(String(20), nullable=False)  # LOAD, UNLOAD, RETURN, ADJUST
+    quantity = Column(Integer, nullable=False)
+
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    stock_card = relationship("StockCard")
