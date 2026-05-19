@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { transferAsset } from "@/lib/api";
+import { getAssetHistory, transferAsset, type AssetMovement } from "@/lib/api";
 
 type Asset = {
   id: number;
@@ -27,6 +27,7 @@ type Props = {
 export default function AssetDetailPage({ params }: Props) {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [history, setHistory] = useState<AssetMovement[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -50,6 +51,9 @@ export default function AssetDetailPage({ params }: Props) {
 
       setAsset(assetData);
       setLocations(locationsData);
+
+      const historyData = await getAssetHistory(assetData.id);
+      setHistory(historyData);
     }
 
     load();
@@ -79,6 +83,8 @@ export default function AssetDetailPage({ params }: Props) {
 
       const refreshedAsset = await refreshed.json();
       setAsset(refreshedAsset);
+      const historyData = await getAssetHistory(refreshedAsset.id);
+      setHistory(historyData);
       setSelectedLocation("");
       alert("Asset trasferito correttamente");
     } catch (error) {
@@ -87,6 +93,17 @@ export default function AssetDetailPage({ params }: Props) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function locationName(id: number | null) {
+    if (id === null) return "Sede iniziale non registrata";
+
+    const location = locations.find((l) => l.id === id);
+    return location ? `${location.code} - ${location.name}` : `Sede ID ${id}`;
+  }
+
+  function currentLocationName() {
+    return locationName(asset?.current_location_id ?? null);
   }
 
   if (!asset) {
@@ -129,9 +146,9 @@ export default function AssetDetailPage({ params }: Props) {
           </div>
 
           <div className="rounded-xl border p-4">
-            <p className="text-sm text-gray-500">Sede ID</p>
+            <p className="text-sm text-gray-500">Sede attuale</p>
             <p className="mt-1 font-semibold">
-              {asset.current_location_id}
+              {currentLocationName()}
             </p>
           </div>
 
@@ -171,6 +188,35 @@ export default function AssetDetailPage({ params }: Props) {
               {loading ? "Trasferisco..." : "Trasferisci"}
             </button>
           </div>
+        </div>
+
+        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+          <h2 className="mb-4 text-xl font-bold">Storico movimenti</h2>
+
+          {history.length === 0 ? (
+            <p className="text-gray-500">Nessun movimento registrato.</p>
+          ) : (
+            <div className="space-y-3">
+              {history.map((movement) => (
+                <div key={movement.id} className="rounded-xl bg-white p-4 shadow-sm">
+                  <p className="font-semibold">
+                    Da {locationName(movement.from_location_id)} → {locationName(movement.to_location_id)}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(movement.moved_at).toLocaleString("it-IT")}
+                  </p>
+                  {movement.moved_by && (
+                    <p className="mt-2 text-sm text-gray-600">
+                      Operatore: {movement.moved_by}
+                    </p>
+                  )}
+                  {movement.notes && (
+                    <p className="mt-2 text-sm">{movement.notes}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </main>

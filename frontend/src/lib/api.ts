@@ -116,3 +116,25 @@ export async function transferAsset(input: {
 
   return res.json();
 }
+
+export type AssetMovement = {
+  id: number;
+  asset_id: number;
+  from_location_id: number | null;
+  to_location_id: number;
+  moved_at: string;
+  moved_by: string | null;
+  notes: string | null;
+};
+
+export async function getAssetHistory(assetId: number): Promise<AssetMovement[]> {
+  const res = await fetch(`${API_BASE}/assets/${assetId}/history`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
