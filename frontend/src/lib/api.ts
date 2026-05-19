@@ -91,3 +91,28 @@ export async function createItem(input: {
 
   return res.json();
 }
+
+export async function transferAsset(input: {
+  assetId: number;
+  toLocationCode: string;
+}) {
+  const res = await fetch(
+    `${API_BASE}/assets/${input.assetId}/transfer`,
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to_location_code: input.toLocationCode,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
