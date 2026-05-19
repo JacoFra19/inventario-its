@@ -23,7 +23,14 @@ export default async function AssetsPage() {
             {assets.map((asset) => (
               <tr key={asset.id} className="border-t">
                 <td className="p-4">{asset.id}</td>
-                <td className="p-4 font-mono">{asset.inventory_code}</td>
+                <td className="p-4 font-mono">
+                  <a
+                    href={`/assets/${asset.inventory_code}`}
+                    className="text-blue-600 hover:underline"
+                  >
+                    {asset.inventory_code}
+                  </a>
+                </td>
                 <td className="p-4">{asset.current_location_id}</td>
                 <td className="p-4">{asset.status}</td>
                 <td className="p-4">{asset.assigned_to ?? "-"}</td>
