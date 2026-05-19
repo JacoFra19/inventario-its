@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, Body
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from io import BytesIO
 import qrcode
 
@@ -10,6 +11,14 @@ from .models import Base, Location, LocationCounter, Item, Asset, AssetMovement
 from .seed import seed_locations
 
 app = FastAPI(title="Inventario ITS", version="0.2.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Solo ambiente di sviluppo
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 Base.metadata.create_all(bind=engine)
 seed_locations()
@@ -108,8 +117,6 @@ def create_asset(item_id: int, location_code: str, notes: str | None = None):
     finally:
         db.close()
 
-from fastapi import Body
-from sqlalchemy import select
 
 @app.post("/assets/{asset_id}/transfer")
 def transfer_asset(
@@ -241,7 +248,6 @@ def debug_routes():
 def ping():
     return {"pong": True}
 
-from sqlalchemy import or_
 
 @app.get("/assets-search")
 def search_assets(q: str):
