@@ -26,6 +26,7 @@ seed_locations()
 seed_categories()
 
 
+
 def generate_inventory_code(db: Session, location_code: str) -> str:
     # Trova la location
     loc = db.execute(select(Location).where(Location.code == location_code)).scalar_one_or_none()
@@ -48,6 +49,25 @@ def generate_inventory_code(db: Session, location_code: str) -> str:
     # incrementa per il prossimo
     counter.next_number = n + 1
     return code
+
+
+# --- HELPER FOR ITEM SERIALIZATION ---
+def serialize_item(item: Item):
+    category = item.category
+
+    return {
+        "id": item.id,
+        "name": item.name,
+        "category_id": item.category_id,
+        "category": None if not category else {
+            "id": category.id,
+            "name": category.name,
+        },
+        "brand": item.brand,
+        "model": item.model,
+        "technical_specs": item.technical_specs,
+        "is_serialized": item.is_serialized,
+    }
 
 @app.get("/health")
 def health():
@@ -95,16 +115,19 @@ def create_item(
     db.add(item)
     db.commit()
     db.refresh(item)
+    item.category = category
+    serialized = serialize_item(item)
     db.close()
-    return item
+    return serialized
 
 
 @app.get("/items")
 def list_items():
     db = SessionLocal()
     items = db.query(Item).all()
+    rows = [serialize_item(item) for item in items]
     db.close()
-    return items
+    return rows
 
 
 @app.post("/assets")
@@ -278,13 +301,16 @@ def get_asset_detail_by_code(inventory_code: str):
         select(Location).where(Location.id == asset.current_location_id)
     ).scalar_one_or_none()
 
-    db.close()
+    serialized_item = None if not item else serialize_item(item)
 
-    return {
+    result = {
         "asset": asset,
-        "item": item,
+        "item": serialized_item,
         "location": location,
     }
+
+    db.close()
+    return result
 
 @app.get("/assets/{inventory_code}/qr")
 def get_asset_qr(inventory_code: str):

@@ -226,7 +226,7 @@ export default function AssetDetailPage({ params }: Props) {
 
               <div className="rounded-xl bg-white p-4 shadow-sm">
                 <p className="text-sm text-gray-500">Categoria</p>
-                <p className="mt-1 font-semibold">{item.category}</p>
+                <p className="mt-1 font-semibold">{item.category?.name ?? "-"}</p>
               </div>
 
               <div className="rounded-xl bg-white p-4 shadow-sm">

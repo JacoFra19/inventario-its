@@ -13,7 +13,8 @@ export type Asset = {
 export type Item = {
   id: number;
   name: string;
-  category: string;
+  category_id: number;
+  category: Category | null;
   brand: string | null;
   model: string | null;
   technical_specs: string | null;
@@ -23,6 +24,11 @@ export type Item = {
 export type Location = {
   id: number;
   code: string;
+  name: string;
+};
+
+export type Category = {
+  id: number;
   name: string;
 };
 
@@ -77,6 +83,18 @@ export async function getItems(): Promise<Item[]> {
 export async function getLocations(): Promise<Location[]> {
   const res = await fetch(`${API_BASE}/locations`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero delle sedi");
+  return res.json();
+}
+
+export async function getCategories(): Promise<Category[]> {
+  const res = await fetch(`${API_BASE}/categories`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero delle categorie");
+  }
+
   return res.json();
 }
 
@@ -192,7 +210,7 @@ export async function createAsset(input: {
 
 export async function createItem(input: {
   name: string;
-  category: string;
+  categoryId: number;
   brand?: string;
   model?: string;
   technicalSpecs?: string;
@@ -206,7 +224,7 @@ export async function createItem(input: {
     },
     body: JSON.stringify({
       name: input.name,
-      category: input.category,
+      category_id: input.categoryId,
       brand: input.brand || null,
       model: input.model || null,
       technical_specs: input.technicalSpecs || null,

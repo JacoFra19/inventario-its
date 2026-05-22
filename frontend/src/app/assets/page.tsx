@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Asset,
+  Category,
   Item,
   Location,
   createAsset,
@@ -10,10 +11,12 @@ import {
   getAssets,
   getItems,
   getLocations,
+  getCategories,
 } from "@/lib/api";
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
 
@@ -26,7 +29,7 @@ export default function AssetsPage() {
   const [locationFilter, setLocationFilter] = useState("ALL");
 
   const [newItemName, setNewItemName] = useState("");
-  const [newItemCategory, setNewItemCategory] = useState("");
+  const [newItemCategoryId, setNewItemCategoryId] = useState("");
   const [newItemBrand, setNewItemBrand] = useState("");
   const [newItemModel, setNewItemModel] = useState("");
   const [newItemTechnicalSpecs, setNewItemTechnicalSpecs] = useState("");
@@ -34,15 +37,17 @@ export default function AssetsPage() {
   const [creatingItem, setCreatingItem] = useState(false);
 
   async function loadData() {
-    const [assetsData, itemsData, locationsData] = await Promise.all([
+    const [assetsData, itemsData, locationsData, categoriesData] = await Promise.all([
       getAssets(),
       getItems(),
       getLocations(),
+      getCategories(),
     ]);
 
     setAssets(assetsData);
     setItems(itemsData);
     setLocations(locationsData);
+    setCategories(categoriesData);
   }
 
   useEffect(() => {
@@ -73,14 +78,14 @@ export default function AssetsPage() {
 
   async function handleCreateItem(e: React.FormEvent) {
     e.preventDefault();
-    if (!newItemName || !newItemCategory) return;
+    if (!newItemName || !newItemCategoryId) return;
 
     setCreatingItem(true);
 
     try {
       await createItem({
         name: newItemName,
-        category: newItemCategory,
+        categoryId: Number(newItemCategoryId),
         brand: newItemBrand,
         model: newItemModel,
         technicalSpecs: newItemTechnicalSpecs,
@@ -88,7 +93,7 @@ export default function AssetsPage() {
       });
 
       setNewItemName("");
-      setNewItemCategory("");
+      setNewItemCategoryId("");
       setNewItemBrand("");
       setNewItemModel("");
       setNewItemTechnicalSpecs("");
@@ -111,6 +116,10 @@ export default function AssetsPage() {
     if (status === "MANCANTE") return "bg-red-100 text-red-700";
 
     return "bg-gray-100 text-gray-700";
+  }
+
+  function itemCategoryLabel(item: Item) {
+    return item.category?.name ?? "Categoria non impostata";
   }
 
   const filteredAssets = assets.filter((asset) => {
@@ -199,12 +208,18 @@ export default function AssetsPage() {
             onChange={(e) => setNewItemName(e.target.value)}
           />
 
-          <input
+          <select
             className="rounded-xl border p-3"
-            placeholder="Categoria"
-            value={newItemCategory}
-            onChange={(e) => setNewItemCategory(e.target.value)}
-          />
+            value={newItemCategoryId}
+            onChange={(e) => setNewItemCategoryId(e.target.value)}
+          >
+            <option value="">Seleziona categoria</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
 
           <input
             className="rounded-xl border p-3"
@@ -239,7 +254,7 @@ export default function AssetsPage() {
 
           <button
             type="submit"
-            disabled={creatingItem}
+            disabled={creatingItem || !newItemName || !newItemCategoryId}
             className="rounded-xl bg-gray-900 p-3 font-semibold text-white hover:bg-black disabled:opacity-50"
           >
             {creatingItem ? "Creo..." : "Crea item"}
@@ -259,7 +274,7 @@ export default function AssetsPage() {
             <option value="">Seleziona item</option>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name} {item.brand ? `- ${item.brand}` : ""} {item.model ? ` ${item.model}` : ""} ({item.category})
+                {item.name} {item.brand ? `- ${item.brand}` : ""} {item.model ? ` ${item.model}` : ""} ({itemCategoryLabel(item)})
               </option>
             ))}
           </select>
