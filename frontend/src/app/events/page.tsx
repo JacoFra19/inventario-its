@@ -10,6 +10,8 @@ import {
   StockCard,
   addAssetToEvent,
   addStockToEvent,
+  cancelEvent,
+  closeEvent,
   markEventAssetMissing,
   returnEventAsset,
   returnEventStock,
@@ -49,6 +51,7 @@ export default function EventsPage() {
   const [stockNotes, setStockNotes] = useState("");
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [returningMaterial, setReturningMaterial] = useState(false);
+  const [eventActionLoading, setEventActionLoading] = useState(false);
   const [stockReturnQuantities, setStockReturnQuantities] = useState<Record<number, string>>({});
   const [stockReturnNotes, setStockReturnNotes] = useState<Record<number, string>>({});
 
@@ -99,6 +102,7 @@ export default function EventsPage() {
   }, [selectedEventId]);
 
   const selectedEvent = eventDetail?.event ?? null;
+  const eventIsOpen = selectedEvent?.status === "OPEN";
 
   const availableAssets = useMemo(() => {
     const linkedAssetIds = new Set(eventDetail?.assets.map((a) => a.asset_id) ?? []);
@@ -302,6 +306,48 @@ export default function EventsPage() {
     }
   }
 
+  async function handleCloseEvent() {
+    if (!selectedEvent) return;
+
+    setEventActionLoading(true);
+
+    try {
+      await closeEvent(selectedEvent.id);
+      await loadData();
+      await loadEventDetail(String(selectedEvent.id));
+      alert("Evento chiuso correttamente");
+    } catch (error) {
+      console.error(error);
+      alert("Impossibile chiudere evento. Verifica che tutto il materiale sia rientrato.");
+    } finally {
+      setEventActionLoading(false);
+    }
+  }
+
+  async function handleCancelEvent() {
+    if (!selectedEvent) return;
+
+    const confirmed = window.confirm(
+      "Vuoi davvero annullare questo evento? L'operazione è consentita solo se non ci sono materiali collegati."
+    );
+
+    if (!confirmed) return;
+
+    setEventActionLoading(true);
+
+    try {
+      await cancelEvent(selectedEvent.id);
+      await loadData();
+      await loadEventDetail(String(selectedEvent.id));
+      alert("Evento annullato correttamente");
+    } catch (error) {
+      console.error(error);
+      alert("Impossibile annullare evento. Se ci sono materiali collegati, registra i rientri o chiudi l'evento.");
+    } finally {
+      setEventActionLoading(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -429,7 +475,15 @@ export default function EventsPage() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-2xl font-bold">{selectedEvent.name}</h2>
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-700">
+                <span
+                  className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                    selectedEvent.status === "OPEN"
+                      ? "bg-blue-100 text-blue-700"
+                      : selectedEvent.status === "CLOSED"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-200 text-gray-700"
+                  }`}
+                >
                   {selectedEvent.status}
                 </span>
               </div>
@@ -447,7 +501,31 @@ export default function EventsPage() {
                 <p className="mt-2 text-sm text-gray-600">{selectedEvent.notes}</p>
               )}
             </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={handleCloseEvent}
+                disabled={eventActionLoading || !eventIsOpen}
+                className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                Chiudi evento
+              </button>
+
+              <button
+                onClick={handleCancelEvent}
+                disabled={eventActionLoading || !eventIsOpen}
+                className="rounded-xl border px-5 py-3 font-semibold hover:bg-white disabled:opacity-50"
+              >
+                Annulla evento
+              </button>
+            </div>
           </div>
+
+          {!eventIsOpen && (
+            <div className="mt-6 rounded-2xl border bg-gray-50 p-4 text-sm text-gray-600">
+              Questo evento non è aperto. Le operazioni di aggiunta materiale e rientro sono bloccate.
+            </div>
+          )}
 
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
             <form onSubmit={handleAddAsset} className="rounded-2xl border bg-gray-50 p-5">
@@ -476,7 +554,7 @@ export default function EventsPage() {
 
                 <button
                   type="submit"
-                  disabled={addingMaterial || !assetIdToAdd}
+                  disabled={addingMaterial || !assetIdToAdd || !eventIsOpen}
                   className="w-full rounded-xl bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                 >
                   Aggiungi asset
@@ -519,7 +597,7 @@ export default function EventsPage() {
 
                 <button
                   type="submit"
-                  disabled={addingMaterial || !stockIdToAdd || !stockQuantity}
+                  disabled={addingMaterial || !stockIdToAdd || !stockQuantity || !eventIsOpen}
                   className="w-full rounded-xl bg-emerald-600 p-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
                   Aggiungi stock
@@ -553,7 +631,7 @@ export default function EventsPage() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleReturnAsset(eventAsset.id)}
-                            disabled={returningMaterial}
+                            disabled={returningMaterial || !eventIsOpen}
                             className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                           >
                             Rientrato
@@ -561,7 +639,7 @@ export default function EventsPage() {
 
                           <button
                             onClick={() => handleMissingAsset(eventAsset.id)}
-                            disabled={returningMaterial}
+                            disabled={returningMaterial || !eventIsOpen}
                             className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
                           >
                             Mancante
@@ -636,6 +714,7 @@ export default function EventsPage() {
                             onClick={() => handleReturnStock(eventStock.id)}
                             disabled={
                               returningMaterial ||
+                              !eventIsOpen ||
                               !(stockReturnQuantities[eventStock.id] ?? "")
                             }
                             className="rounded-xl bg-emerald-600 p-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"

@@ -1,10 +1,10 @@
-import { getAssets, getLocations, getStocks } from "@/lib/api";
+import { getAssets, getEvents, getStocks } from "@/lib/api";
 
 export default async function Home() {
-  const [assets, locations, stocks] = await Promise.all([
+  const [assets, stocks, events] = await Promise.all([
     getAssets(),
-    getLocations(),
     getStocks(),
+    getEvents(),
   ]);
 
   const inSede = assets.filter((asset) => asset.status === "IN_SEDE").length;
@@ -12,6 +12,24 @@ export default async function Home() {
   const stockSottoSoglia = stocks.filter(
     (stock) => stock.quantity <= stock.min_threshold
   ).length;
+
+  const assetInEvento = assets.filter(
+    (asset) => asset.status === "IN_EVENTO"
+  ).length;
+
+  const assetMancanti = assets.filter(
+    (asset) => asset.status === "MANCANTE"
+  ).length;
+
+  const eventiAperti = events.filter(
+    (event) => event.status === "OPEN"
+  ).length;
+
+  const hasAlerts =
+    stockSottoSoglia > 0 ||
+    assetInEvento > 0 ||
+    assetMancanti > 0 ||
+    eventiAperti > 0;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -55,7 +73,64 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-wide text-gray-500">
+              Alert operativi
+            </p>
+            <h2 className="mt-1 text-2xl font-bold">
+              Situazione da monitorare
+            </h2>
+          </div>
+
+          <span
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              hasAlerts
+                ? "bg-red-100 text-red-700"
+                : "bg-emerald-100 text-emerald-700"
+            }`}
+          >
+            {hasAlerts ? "Richiede attenzione" : "Tutto regolare"}
+          </span>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <a
+            href="/stocks"
+            className="rounded-xl border p-4 transition hover:bg-gray-50"
+          >
+            <p className="text-sm text-gray-500">Stock sotto soglia</p>
+            <p className="mt-1 text-2xl font-bold">{stockSottoSoglia}</p>
+          </a>
+
+          <a
+            href="/events"
+            className="rounded-xl border p-4 transition hover:bg-gray-50"
+          >
+            <p className="text-sm text-gray-500">Eventi aperti</p>
+            <p className="mt-1 text-2xl font-bold">{eventiAperti}</p>
+          </a>
+
+          <a
+            href="/assets"
+            className="rounded-xl border p-4 transition hover:bg-gray-50"
+          >
+            <p className="text-sm text-gray-500">Asset in evento</p>
+            <p className="mt-1 text-2xl font-bold">{assetInEvento}</p>
+          </a>
+
+          <a
+            href="/assets"
+            className="rounded-xl border p-4 transition hover:bg-gray-50"
+          >
+            <p className="text-sm text-gray-500">Asset mancanti</p>
+            <p className="mt-1 text-2xl font-bold">{assetMancanti}</p>
+          </a>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <a
           href="/assets"
           className="rounded-2xl bg-blue-600 p-6 text-white shadow transition hover:bg-blue-700"
@@ -96,6 +171,19 @@ export default async function Home() {
         </a>
 
         <a
+          href="/events"
+          className="rounded-2xl bg-orange-500 p-6 text-white shadow transition hover:bg-orange-600"
+        >
+          <p className="text-sm uppercase tracking-wide text-orange-100">
+            Logistica
+          </p>
+          <h2 className="mt-2 text-2xl font-bold">Eventi e fiere</h2>
+          <p className="mt-2 text-orange-100">
+            Prepara eventi, scarica consumabili, collega asset e registra rientri.
+          </p>
+        </a>
+
+        <a
           href="/labels"
           className="rounded-2xl bg-white p-6 text-gray-900 shadow transition hover:bg-gray-50"
         >
@@ -108,14 +196,14 @@ export default async function Home() {
           </p>
         </a>
 
-        <div className="rounded-2xl bg-white p-6 shadow md:col-span-2 xl:col-span-4">
+        <div className="rounded-2xl bg-white p-6 shadow md:col-span-2 xl:col-span-5">
           <p className="text-sm uppercase tracking-wide text-gray-500">
             Prossimi moduli
           </p>
           <h2 className="mt-2 text-2xl font-bold">In evoluzione</h2>
           <ul className="mt-3 space-y-2 text-gray-600">
             <li>• alert ritardi e incongruenze</li>
-            <li>• modulo eventi e fiere</li>
+            <li>• report evento PDF</li>
             <li>• login utenti e permessi</li>
           </ul>
         </div>

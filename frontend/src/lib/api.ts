@@ -492,3 +492,29 @@ export async function returnEventStock(input: {
 
   return res.json();
 }
+
+export async function closeEvent(eventId: number): Promise<Event> {
+  const res = await fetch(`${API_BASE}/events/${eventId}/close`, {
+    method: "POST",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function cancelEvent(eventId: number): Promise<Event> {
+  const res = await fetch(`${API_BASE}/events/${eventId}/cancel`, {
+    method: "POST",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}

@@ -735,3 +735,91 @@ def return_event_stock(
         raise
     finally:
         db.close()
+
+
+# --- EVENT CLOSE/CANCEL ENDPOINTS ---
+
+@app.post("/events/{event_id}/close")
+def close_event(event_id: int):
+    db = SessionLocal()
+
+    try:
+        event = db.execute(select(Event).where(Event.id == event_id)).scalar_one_or_none()
+        if not event:
+            raise HTTPException(status_code=404, detail="Evento non trovato")
+
+        if event.status == "CLOSED":
+            raise HTTPException(status_code=400, detail="Evento già chiuso")
+
+        if event.status == "CANCELLED":
+            raise HTTPException(status_code=400, detail="Evento annullato: non può essere chiuso")
+
+        open_assets = db.query(EventAsset).filter(
+            EventAsset.event_id == event_id,
+            EventAsset.status == "OUT",
+        ).count()
+
+        event_stocks = db.query(EventStock).filter(EventStock.event_id == event_id).all()
+        open_stock_returns = sum(
+            max(0, event_stock.quantity_out - event_stock.quantity_returned)
+            for event_stock in event_stocks
+        )
+
+        if open_assets > 0 or open_stock_returns > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Impossibile chiudere evento: materiale ancora da rientrare. "
+                    f"Asset fuori: {open_assets}. Consumabili da rientrare: {open_stock_returns}."
+                ),
+            )
+
+        event.status = "CLOSED"
+
+        db.commit()
+        db.refresh(event)
+        return event
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.post("/events/{event_id}/cancel")
+def cancel_event(event_id: int):
+    db = SessionLocal()
+
+    try:
+        event = db.execute(select(Event).where(Event.id == event_id)).scalar_one_or_none()
+        if not event:
+            raise HTTPException(status_code=404, detail="Evento non trovato")
+
+        if event.status == "CLOSED":
+            raise HTTPException(status_code=400, detail="Evento già chiuso: non può essere annullato")
+
+        if event.status == "CANCELLED":
+            raise HTTPException(status_code=400, detail="Evento già annullato")
+
+        linked_assets = db.query(EventAsset).filter(EventAsset.event_id == event_id).count()
+        linked_stocks = db.query(EventStock).filter(EventStock.event_id == event_id).count()
+
+        if linked_assets > 0 or linked_stocks > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Impossibile annullare evento: sono già presenti materiali collegati. "
+                    "Prima registra i rientri o usa la chiusura evento."
+                ),
+            )
+
+        event.status = "CANCELLED"
+
+        db.commit()
+        db.refresh(event)
+        return event
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
