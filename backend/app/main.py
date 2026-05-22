@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -596,6 +597,133 @@ def add_stock_to_event(
             movement_type="UNLOAD",
             quantity=quantity_out,
             notes=f"Uscita per evento: {event.name}" if not notes else f"Uscita per evento: {event.name} - {notes}",
+        )
+        db.add(movement)
+
+        db.commit()
+        db.refresh(event_stock)
+        return event_stock
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+# --- EVENT ASSET RETURN/MISSING & EVENT STOCK RETURN ENDPOINTS ---
+
+@app.post("/events/{event_id}/assets/{event_asset_id}/return")
+def return_event_asset(event_id: int, event_asset_id: int):
+    db = SessionLocal()
+
+    try:
+        event_asset = db.execute(
+            select(EventAsset).where(
+                EventAsset.id == event_asset_id,
+                EventAsset.event_id == event_id,
+            )
+        ).scalar_one_or_none()
+
+        if not event_asset:
+            raise HTTPException(status_code=404, detail="Asset evento non trovato")
+
+        asset = db.execute(select(Asset).where(Asset.id == event_asset.asset_id)).scalar_one_or_none()
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset non trovato")
+
+        event_asset.status = "RETURNED"
+        event_asset.returned_at = datetime.utcnow()
+        asset.status = "IN_SEDE"
+
+        db.commit()
+        db.refresh(event_asset)
+        return event_asset
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.post("/events/{event_id}/assets/{event_asset_id}/missing")
+def mark_event_asset_missing(event_id: int, event_asset_id: int):
+    db = SessionLocal()
+
+    try:
+        event_asset = db.execute(
+            select(EventAsset).where(
+                EventAsset.id == event_asset_id,
+                EventAsset.event_id == event_id,
+            )
+        ).scalar_one_or_none()
+
+        if not event_asset:
+            raise HTTPException(status_code=404, detail="Asset evento non trovato")
+
+        asset = db.execute(select(Asset).where(Asset.id == event_asset.asset_id)).scalar_one_or_none()
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset non trovato")
+
+        event_asset.status = "MISSING"
+        event_asset.returned_at = None
+        asset.status = "MANCANTE"
+
+        db.commit()
+        db.refresh(event_asset)
+        return event_asset
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.post("/events/{event_id}/stocks/{event_stock_id}/return")
+def return_event_stock(
+    event_id: int,
+    event_stock_id: int,
+    quantity_returned: int = Body(...),
+    notes: str | None = Body(None),
+):
+    db = SessionLocal()
+
+    try:
+        event = db.execute(select(Event).where(Event.id == event_id)).scalar_one_or_none()
+        if not event:
+            raise HTTPException(status_code=404, detail="Evento non trovato")
+
+        event_stock = db.execute(
+            select(EventStock).where(
+                EventStock.id == event_stock_id,
+                EventStock.event_id == event_id,
+            )
+        ).scalar_one_or_none()
+
+        if not event_stock:
+            raise HTTPException(status_code=404, detail="Stock evento non trovato")
+
+        if quantity_returned <= 0:
+            raise HTTPException(status_code=400, detail="La quantità rientrata deve essere maggiore di zero")
+
+        remaining_returnable = event_stock.quantity_out - event_stock.quantity_returned
+        if quantity_returned > remaining_returnable:
+            raise HTTPException(
+                status_code=400,
+                detail="La quantità rientrata supera quella ancora da registrare come rientrata."
+            )
+
+        stock = db.execute(select(StockCard).where(StockCard.id == event_stock.stock_card_id)).scalar_one_or_none()
+        if not stock:
+            raise HTTPException(status_code=404, detail="Scheda stock non trovata")
+
+        event_stock.quantity_returned += quantity_returned
+        stock.quantity += quantity_returned
+
+        movement = StockMovement(
+            stock_card_id=stock.id,
+            movement_type="RETURN",
+            quantity=quantity_returned,
+            notes=f"Rientro da evento: {event.name}" if not notes else f"Rientro da evento: {event.name} - {notes}",
         )
         db.add(movement)
 
