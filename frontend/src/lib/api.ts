@@ -426,3 +426,69 @@ export async function addStockToEvent(input: {
 
   return res.json();
 }
+
+export async function returnEventAsset(input: {
+  eventId: number;
+  eventAssetId: number;
+}): Promise<EventAsset> {
+  const res = await fetch(
+    `${API_BASE}/events/${input.eventId}/assets/${input.eventAssetId}/return`,
+    {
+      method: "POST",
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function markEventAssetMissing(input: {
+  eventId: number;
+  eventAssetId: number;
+}): Promise<EventAsset> {
+  const res = await fetch(
+    `${API_BASE}/events/${input.eventId}/assets/${input.eventAssetId}/missing`,
+    {
+      method: "POST",
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function returnEventStock(input: {
+  eventId: number;
+  eventStockId: number;
+  quantityReturned: number;
+  notes?: string;
+}): Promise<EventStock> {
+  const res = await fetch(
+    `${API_BASE}/events/${input.eventId}/stocks/${input.eventStockId}/return`,
+    {
+      method: "POST",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        quantity_returned: input.quantityReturned,
+        notes: input.notes || null,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}

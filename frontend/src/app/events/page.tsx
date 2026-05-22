@@ -10,6 +10,9 @@ import {
   StockCard,
   addAssetToEvent,
   addStockToEvent,
+  markEventAssetMissing,
+  returnEventAsset,
+  returnEventStock,
   createEvent,
   getAssets,
   getEvent,
@@ -45,6 +48,9 @@ export default function EventsPage() {
   const [stockQuantity, setStockQuantity] = useState("");
   const [stockNotes, setStockNotes] = useState("");
   const [addingMaterial, setAddingMaterial] = useState(false);
+  const [returningMaterial, setReturningMaterial] = useState(false);
+  const [stockReturnQuantities, setStockReturnQuantities] = useState<Record<number, string>>({});
+  const [stockReturnNotes, setStockReturnNotes] = useState<Record<number, string>>({});
 
   async function loadData() {
     const [eventsData, assetsData, stocksData, itemsData, locationsData] = await Promise.all([
@@ -212,6 +218,87 @@ export default function EventsPage() {
       alert("Errore durante il collegamento stock. Controlla quantità disponibile.");
     } finally {
       setAddingMaterial(false);
+    }
+  }
+
+  async function handleReturnAsset(eventAssetId: number) {
+    if (!selectedEvent) return;
+
+    setReturningMaterial(true);
+
+    try {
+      await returnEventAsset({
+        eventId: selectedEvent.id,
+        eventAssetId,
+      });
+
+      await loadData();
+      await loadEventDetail(String(selectedEvent.id));
+      alert("Asset rientrato correttamente");
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante il rientro asset.");
+    } finally {
+      setReturningMaterial(false);
+    }
+  }
+
+  async function handleMissingAsset(eventAssetId: number) {
+    if (!selectedEvent) return;
+
+    setReturningMaterial(true);
+
+    try {
+      await markEventAssetMissing({
+        eventId: selectedEvent.id,
+        eventAssetId,
+      });
+
+      await loadData();
+      await loadEventDetail(String(selectedEvent.id));
+      alert("Asset segnato come mancante");
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante l'aggiornamento asset.");
+    } finally {
+      setReturningMaterial(false);
+    }
+  }
+
+  async function handleReturnStock(eventStockId: number) {
+    if (!selectedEvent) return;
+
+    const quantity = stockReturnQuantities[eventStockId];
+    if (!quantity) return;
+
+    setReturningMaterial(true);
+
+    try {
+      await returnEventStock({
+        eventId: selectedEvent.id,
+        eventStockId,
+        quantityReturned: Number(quantity),
+        notes: stockReturnNotes[eventStockId],
+      });
+
+      setStockReturnQuantities((prev) => ({
+        ...prev,
+        [eventStockId]: "",
+      }));
+
+      setStockReturnNotes((prev) => ({
+        ...prev,
+        [eventStockId]: "",
+      }));
+
+      await loadData();
+      await loadEventDetail(String(selectedEvent.id));
+      alert("Rientro stock registrato correttamente");
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante il rientro stock.");
+    } finally {
+      setReturningMaterial(false);
     }
   }
 
@@ -453,9 +540,35 @@ export default function EventsPage() {
               <div className="space-y-3">
                 {eventDetail.assets.map((eventAsset) => (
                   <div key={eventAsset.id} className="rounded-xl bg-gray-50 p-4">
-                    <p className="font-semibold">{linkedAssetLabel(eventAsset.asset_id)}</p>
-                    <p className="text-sm text-gray-500">Stato: {eventAsset.status}</p>
-                    {eventAsset.notes && <p className="mt-2 text-sm">{eventAsset.notes}</p>}
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <p className="font-semibold">{linkedAssetLabel(eventAsset.asset_id)}</p>
+                        <p className="text-sm text-gray-500">Stato: {eventAsset.status}</p>
+                        {eventAsset.notes && (
+                          <p className="mt-2 text-sm">{eventAsset.notes}</p>
+                        )}
+                      </div>
+
+                      {eventAsset.status === "OUT" && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleReturnAsset(eventAsset.id)}
+                            disabled={returningMaterial}
+                            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            Rientrato
+                          </button>
+
+                          <button
+                            onClick={() => handleMissingAsset(eventAsset.id)}
+                            disabled={returningMaterial}
+                            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                          >
+                            Mancante
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -468,15 +581,72 @@ export default function EventsPage() {
               <p className="text-gray-500">Nessuno stock collegato.</p>
             ) : (
               <div className="space-y-3">
-                {eventDetail.stocks.map((eventStock) => (
-                  <div key={eventStock.id} className="rounded-xl bg-gray-50 p-4">
-                    <p className="font-semibold">{linkedStockLabel(eventStock.stock_card_id)}</p>
-                    <p className="text-sm text-gray-500">
-                      Usciti: {eventStock.quantity_out} — Rientrati: {eventStock.quantity_returned}
-                    </p>
-                    {eventStock.notes && <p className="mt-2 text-sm">{eventStock.notes}</p>}
-                  </div>
-                ))}
+                {eventDetail.stocks.map((eventStock) => {
+                  const remaining =
+                    eventStock.quantity_out - eventStock.quantity_returned;
+
+                  return (
+                    <div key={eventStock.id} className="rounded-xl bg-gray-50 p-4">
+                      <p className="font-semibold">
+                        {linkedStockLabel(eventStock.stock_card_id)}
+                      </p>
+
+                      <p className="text-sm text-gray-500">
+                        Usciti: {eventStock.quantity_out} — Rientrati: {eventStock.quantity_returned}
+                      </p>
+
+                      <p className="mt-1 text-sm font-medium text-gray-700">
+                        Da rientrare: {remaining}
+                      </p>
+
+                      {eventStock.notes && (
+                        <p className="mt-2 text-sm">{eventStock.notes}</p>
+                      )}
+
+                      {remaining > 0 && (
+                        <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-3">
+                          <input
+                            className="rounded-xl border p-3"
+                            type="number"
+                            min="1"
+                            max={remaining}
+                            placeholder="Quantità rientrata"
+                            value={stockReturnQuantities[eventStock.id] ?? ""}
+                            onChange={(e) =>
+                              setStockReturnQuantities((prev) => ({
+                                ...prev,
+                                [eventStock.id]: e.target.value,
+                              }))
+                            }
+                          />
+
+                          <input
+                            className="rounded-xl border p-3"
+                            placeholder="Note rientro"
+                            value={stockReturnNotes[eventStock.id] ?? ""}
+                            onChange={(e) =>
+                              setStockReturnNotes((prev) => ({
+                                ...prev,
+                                [eventStock.id]: e.target.value,
+                              }))
+                            }
+                          />
+
+                          <button
+                            onClick={() => handleReturnStock(eventStock.id)}
+                            disabled={
+                              returningMaterial ||
+                              !(stockReturnQuantities[eventStock.id] ?? "")
+                            }
+                            className="rounded-xl bg-emerald-600 p-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            Registra rientro
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
