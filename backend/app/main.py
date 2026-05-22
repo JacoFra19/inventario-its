@@ -8,8 +8,8 @@ from io import BytesIO
 import qrcode
 
 from .db import engine, SessionLocal
-from .models import Base, Location, LocationCounter, Item, Asset, AssetMovement, StockCard, StockMovement, Event, EventAsset, EventStock
-from .seed import seed_locations
+from .models import Base, Location, LocationCounter, Category, Item, Asset, AssetMovement, StockCard, StockMovement, Event, EventAsset, EventStock
+from .seed import seed_categories, seed_locations
 
 app = FastAPI(title="Inventario ITS", version="0.2.0")
 
@@ -23,6 +23,7 @@ app.add_middleware(
 
 Base.metadata.create_all(bind=engine)
 seed_locations()
+seed_categories()
 
 
 def generate_inventory_code(db: Session, location_code: str) -> str:
@@ -61,14 +62,36 @@ def get_locations():
     return rows
 
 
+@app.get("/categories")
+def get_categories():
+    db = SessionLocal()
+    rows = db.query(Category).order_by(Category.name.asc()).all()
+    db.close()
+    return rows
+
+
 @app.post("/items")
 def create_item(
     name: str = Body(...),
-    category: str = Body(...),
+    category_id: int = Body(...),
+    brand: str | None = Body(None),
+    model: str | None = Body(None),
+    technical_specs: str | None = Body(None),
     is_serialized: bool = Body(True),
 ):
     db = SessionLocal()
-    item = Item(name=name, category=category, is_serialized=is_serialized)
+    category = db.execute(select(Category).where(Category.id == category_id)).scalar_one_or_none()
+    if not category:
+        db.close()
+        raise HTTPException(status_code=404, detail=f"Categoria non trovata: {category_id}")
+    item = Item(
+        name=name,
+        category_id=category.id,
+        brand=brand,
+        model=model,
+        technical_specs=technical_specs,
+        is_serialized=is_serialized,
+    )
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -237,6 +260,31 @@ def get_asset_by_code(inventory_code: str):
     if not asset:
         raise HTTPException(status_code=404, detail="Asset non trovato")
     return asset
+
+
+@app.get("/assets/{inventory_code}/detail")
+def get_asset_detail_by_code(inventory_code: str):
+    db = SessionLocal()
+    asset = db.execute(
+        select(Asset).where(Asset.inventory_code == inventory_code)
+    ).scalar_one_or_none()
+
+    if not asset:
+        db.close()
+        raise HTTPException(status_code=404, detail="Asset non trovato")
+
+    item = db.execute(select(Item).where(Item.id == asset.item_id)).scalar_one_or_none()
+    location = db.execute(
+        select(Location).where(Location.id == asset.current_location_id)
+    ).scalar_one_or_none()
+
+    db.close()
+
+    return {
+        "asset": asset,
+        "item": item,
+        "location": location,
+    }
 
 @app.get("/assets/{inventory_code}/qr")
 def get_asset_qr(inventory_code: str):

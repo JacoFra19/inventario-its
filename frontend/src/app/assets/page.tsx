@@ -22,9 +22,14 @@ export default function AssetsPage() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [locationFilter, setLocationFilter] = useState("ALL");
 
   const [newItemName, setNewItemName] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("");
+  const [newItemBrand, setNewItemBrand] = useState("");
+  const [newItemModel, setNewItemModel] = useState("");
+  const [newItemTechnicalSpecs, setNewItemTechnicalSpecs] = useState("");
   const [newItemSerialized, setNewItemSerialized] = useState(true);
   const [creatingItem, setCreatingItem] = useState(false);
 
@@ -76,11 +81,17 @@ export default function AssetsPage() {
       await createItem({
         name: newItemName,
         category: newItemCategory,
+        brand: newItemBrand,
+        model: newItemModel,
+        technicalSpecs: newItemTechnicalSpecs,
         isSerialized: newItemSerialized,
       });
 
       setNewItemName("");
       setNewItemCategory("");
+      setNewItemBrand("");
+      setNewItemModel("");
+      setNewItemTechnicalSpecs("");
       setNewItemSerialized(true);
       await loadData();
     } finally {
@@ -93,7 +104,23 @@ export default function AssetsPage() {
     return location ? `${location.code} - ${location.name}` : id;
   }
 
+  function statusBadgeClass(status: string) {
+    if (status === "IN_SEDE") return "bg-emerald-100 text-emerald-700";
+    if (status === "ASSEGNATO") return "bg-blue-100 text-blue-700";
+    if (status === "IN_EVENTO") return "bg-orange-100 text-orange-700";
+    if (status === "MANCANTE") return "bg-red-100 text-red-700";
+
+    return "bg-gray-100 text-gray-700";
+  }
+
   const filteredAssets = assets.filter((asset) => {
+    const matchesStatus =
+      statusFilter === "ALL" || asset.status === statusFilter;
+
+    const matchesLocation =
+      locationFilter === "ALL" ||
+      asset.current_location_id === Number(locationFilter);
+
     const text = [
       asset.inventory_code,
       asset.status,
@@ -104,8 +131,12 @@ export default function AssetsPage() {
       .join(" ")
       .toLowerCase();
 
-    return text.includes(search.toLowerCase());
+    const matchesSearch = text.includes(search.toLowerCase());
+
+    return matchesStatus && matchesLocation && matchesSearch;
   });
+
+  const uniqueStatuses = Array.from(new Set(assets.map((asset) => asset.status)));
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -175,7 +206,29 @@ export default function AssetsPage() {
             onChange={(e) => setNewItemCategory(e.target.value)}
           />
 
-          <label className="flex items-center gap-2 rounded-xl border p-3">
+          <input
+            className="rounded-xl border p-3"
+            placeholder="Marca, es. Apple"
+            value={newItemBrand}
+            onChange={(e) => setNewItemBrand(e.target.value)}
+          />
+
+          <input
+            className="rounded-xl border p-3"
+            placeholder="Modello, es. MacBook Pro 14 M4 Pro"
+            value={newItemModel}
+            onChange={(e) => setNewItemModel(e.target.value)}
+          />
+
+          <textarea
+            className="rounded-xl border p-3 md:col-span-3"
+            placeholder="Specifiche tecniche, es. 24GB RAM, 1TB SSD, CPU 12-core..."
+            value={newItemTechnicalSpecs}
+            onChange={(e) => setNewItemTechnicalSpecs(e.target.value)}
+            rows={3}
+          />
+
+          <label className="flex items-center gap-2 rounded-xl border p-3 md:col-span-1">
             <input
               type="checkbox"
               checked={newItemSerialized}
@@ -206,7 +259,7 @@ export default function AssetsPage() {
             <option value="">Seleziona item</option>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name} ({item.category})
+                {item.name} {item.brand ? `- ${item.brand}` : ""} {item.model ? ` ${item.model}` : ""} ({item.category})
               </option>
             ))}
           </select>
@@ -242,17 +295,79 @@ export default function AssetsPage() {
       </section>
 
       <section className="mb-4 rounded-2xl bg-white p-6 shadow">
-        <label className="mb-2 block text-sm font-medium text-gray-600">
-          Ricerca asset
-        </label>
-        <input
-          className="w-full rounded-xl border p-3 shadow-sm"
-          placeholder="Cerca per codice, sede, stato, assegnatario o note..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <p className="mt-2 text-sm text-gray-500">
-          {filteredAssets.length} asset trovati
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-bold">Filtri asset</h2>
+            <p className="text-sm text-gray-500">
+              Cerca e filtra per stato, sede, assegnazione o note.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setStatusFilter("ALL");
+              setLocationFilter("ALL");
+            }}
+            className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+          >
+            Pulisci filtri
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-600">
+              Ricerca
+            </label>
+            <input
+              className="w-full rounded-xl border p-3 shadow-sm"
+              placeholder="Codice, sede, stato, assegnatario o note..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-600">
+              Stato
+            </label>
+            <select
+              className="w-full rounded-xl border p-3 shadow-sm"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="ALL">Tutti gli stati</option>
+              {uniqueStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-600">
+              Sede
+            </label>
+            <select
+              className="w-full rounded-xl border p-3 shadow-sm"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+            >
+              <option value="ALL">Tutte le sedi</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.code} - {location.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <p className="mt-4 text-sm text-gray-500">
+          {filteredAssets.length} asset trovati su {assets.length}
         </p>
       </section>
 
@@ -270,6 +385,13 @@ export default function AssetsPage() {
           </thead>
 
           <tbody>
+            {filteredAssets.length === 0 && (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-gray-500">
+                  Nessun asset trovato con i filtri selezionati.
+                </td>
+              </tr>
+            )}
             {filteredAssets.map((asset) => (
               <tr key={asset.id} className="border-t hover:bg-gray-50">
                 <td className="p-4">{asset.id}</td>
@@ -283,7 +405,7 @@ export default function AssetsPage() {
                 </td>
                 <td className="p-4">{locationLabel(asset.current_location_id)}</td>
                 <td className="p-4">
-                  <span className="rounded-full bg-gray-100 px-3 py-1 text-sm">
+                  <span className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(asset.status)}`}>
                     {asset.status}
                   </span>
                 </td>

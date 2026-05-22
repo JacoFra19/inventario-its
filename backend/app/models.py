@@ -21,12 +21,27 @@ class LocationCounter(Base):
     location = relationship("Location")
 
 
+# Category model
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+
+
 class Item(Base):
     __tablename__ = "items"
 
     id = Column(Integer, primary_key=True, index=True)
+
     name = Column(String(255), nullable=False)
-    category = Column(String(100), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+
+    brand = Column(String(100), nullable=True)
+    model = Column(String(100), nullable=True)
+    technical_specs = Column(String(2000), nullable=True)
+
+    category = relationship("Category")
     is_serialized = Column(Boolean, nullable=False, default=True)
 
 

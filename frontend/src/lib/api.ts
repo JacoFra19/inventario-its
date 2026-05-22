@@ -14,6 +14,9 @@ export type Item = {
   id: number;
   name: string;
   category: string;
+  brand: string | null;
+  model: string | null;
+  technical_specs: string | null;
   is_serialized: boolean;
 };
 
@@ -21,6 +24,12 @@ export type Location = {
   id: number;
   code: string;
   name: string;
+};
+
+export type AssetDetail = {
+  asset: Asset;
+  item: Item | null;
+  location: Location | null;
 };
 
 export type StockCard = {
@@ -44,6 +53,18 @@ export type StockMovement = {
 export async function getAssets(): Promise<Asset[]> {
   const res = await fetch(`${API_BASE}/assets`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero degli asset");
+  return res.json();
+}
+
+export async function getAssetDetail(inventoryCode: string): Promise<AssetDetail> {
+  const res = await fetch(`${API_BASE}/assets/${inventoryCode}/detail`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
   return res.json();
 }
 
@@ -172,6 +193,9 @@ export async function createAsset(input: {
 export async function createItem(input: {
   name: string;
   category: string;
+  brand?: string;
+  model?: string;
+  technicalSpecs?: string;
   isSerialized: boolean;
 }): Promise<Item> {
   const res = await fetch(`${API_BASE}/items`, {
@@ -183,6 +207,9 @@ export async function createItem(input: {
     body: JSON.stringify({
       name: input.name,
       category: input.category,
+      brand: input.brand || null,
+      model: input.model || null,
+      technical_specs: input.technicalSpecs || null,
       is_serialized: input.isSerialized,
     }),
   });

@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import {
   assignAsset,
+  getAssetDetail,
   getAssetHistory,
   transferAsset,
   unassignAsset,
-  type AssetMovement,
+  type AssetDetail,
+  type AssetTransferMovement,
 } from "@/lib/api";
 
 type Asset = {
@@ -33,7 +35,8 @@ type Props = {
 export default function AssetDetailPage({ params }: Props) {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
-  const [history, setHistory] = useState<AssetMovement[]>([]);
+  const [assetDetail, setAssetDetail] = useState<AssetDetail | null>(null);
+  const [history, setHistory] = useState<AssetTransferMovement[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,30 +46,34 @@ export default function AssetDetailPage({ params }: Props) {
     async function load() {
       const { code } = await params;
 
-      const [assetRes, locationsRes] = await Promise.all([
-        fetch(`http://localhost:8000/assets/${code}`, {
-          cache: "no-store",
-        }),
+      const [detailData, locationsRes] = await Promise.all([
+        getAssetDetail(code),
         fetch(`http://localhost:8000/locations`, {
           cache: "no-store",
         }),
       ]);
 
-      if (!assetRes.ok) return;
-
-      const assetData = await assetRes.json();
       const locationsData = await locationsRes.json();
 
-      setAsset(assetData);
-      setAssignedTo(assetData.assigned_to ?? "");
+      setAssetDetail(detailData);
+      setAsset(detailData.asset);
+      setAssignedTo(detailData.asset.assigned_to ?? "");
       setLocations(locationsData);
 
-      const historyData = await getAssetHistory(assetData.id);
+      const historyData = await getAssetHistory(detailData.asset.id);
       setHistory(historyData);
     }
 
     load();
   }, [params]);
+
+  async function refreshAssetDetail(inventoryCode: string) {
+    const detailData = await getAssetDetail(inventoryCode);
+    setAssetDetail(detailData);
+    setAsset(detailData.asset);
+    setAssignedTo(detailData.asset.assigned_to ?? "");
+    return detailData.asset;
+  }
 
   async function handleTransfer() {
     if (!asset || !selectedLocation) return;
@@ -79,19 +86,8 @@ export default function AssetDetailPage({ params }: Props) {
         toLocationCode: selectedLocation,
       });
 
-      const refreshed = await fetch(
-        `http://localhost:8000/assets/${asset.inventory_code}`,
-        {
-          cache: "no-store",
-        }
-      );
+      const refreshedAsset = await refreshAssetDetail(asset.inventory_code);
 
-      if (!refreshed.ok) {
-        throw new Error("Errore nel refresh dell'asset dopo il trasferimento");
-      }
-
-      const refreshedAsset = await refreshed.json();
-      setAsset(refreshedAsset);
       const historyData = await getAssetHistory(refreshedAsset.id);
       setHistory(historyData);
       setSelectedLocation("");
@@ -115,8 +111,7 @@ export default function AssetDetailPage({ params }: Props) {
         assignedTo: assignedTo.trim(),
       });
 
-      setAsset(updatedAsset);
-      setAssignedTo(updatedAsset.assigned_to ?? "");
+      await refreshAssetDetail(updatedAsset.inventory_code);
       alert("Asset assegnato correttamente");
     } catch (error) {
       console.error(error);
@@ -134,8 +129,7 @@ export default function AssetDetailPage({ params }: Props) {
     try {
       const updatedAsset = await unassignAsset(asset.id);
 
-      setAsset(updatedAsset);
-      setAssignedTo("");
+      await refreshAssetDetail(updatedAsset.inventory_code);
       alert("Assegnazione rimossa correttamente");
     } catch (error) {
       console.error(error);
@@ -156,6 +150,8 @@ export default function AssetDetailPage({ params }: Props) {
     return locationName(asset?.current_location_id ?? null);
   }
 
+  const item = assetDetail?.item;
+
   if (!asset) {
     return <main className="p-10">Caricamento asset...</main>;
   }
@@ -173,7 +169,9 @@ export default function AssetDetailPage({ params }: Props) {
               {asset.inventory_code}
             </h1>
             <p className="mt-2 text-gray-500">
-              Gestione dettaglio asset e QR.
+              {item
+                ? `${item.name}${item.brand ? ` - ${item.brand}` : ""}${item.model ? ` ${item.model}` : ""}`
+                : "Gestione dettaglio asset e QR."}
             </p>
           </div>
 
@@ -208,6 +206,47 @@ export default function AssetDetailPage({ params }: Props) {
               {asset.assigned_to ?? "-"}
             </p>
           </div>
+        </div>
+
+        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+          <h2 className="mb-4 text-xl font-bold">
+            Scheda tecnica item
+          </h2>
+
+          {!item ? (
+            <p className="text-gray-500">
+              Nessuna informazione item collegata a questo asset.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-sm text-gray-500">Nome oggetto</p>
+                <p className="mt-1 font-semibold">{item.name}</p>
+              </div>
+
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-sm text-gray-500">Categoria</p>
+                <p className="mt-1 font-semibold">{item.category}</p>
+              </div>
+
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-sm text-gray-500">Marca</p>
+                <p className="mt-1 font-semibold">{item.brand ?? "-"}</p>
+              </div>
+
+              <div className="rounded-xl bg-white p-4 shadow-sm">
+                <p className="text-sm text-gray-500">Modello</p>
+                <p className="mt-1 font-semibold">{item.model ?? "-"}</p>
+              </div>
+
+              <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-2">
+                <p className="text-sm text-gray-500">Specifiche tecniche</p>
+                <p className="mt-1 whitespace-pre-wrap font-semibold">
+                  {item.technical_specs ?? "-"}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-8 rounded-2xl border bg-gray-50 p-5">

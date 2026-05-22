@@ -1,5 +1,5 @@
 from .db import SessionLocal
-from .models import Location
+from .models import Category, Location
 
 LOCATIONS = [
     ("BA1", "Bari FDL"),
@@ -19,6 +19,17 @@ LOCATIONS = [
     ("TR1", "Trani"),
 ]
 
+CATEGORIES = [
+    "Informatica",
+    "Audio/Video",
+    "Arredi",
+    "Software e Licenze",
+    "Materiale promozionale",
+    "Consumabili",
+    "Accessori",
+    "Altro",
+]
+
 def seed_locations():
     db = SessionLocal()
     existing = db.query(Location).count()
@@ -26,4 +37,17 @@ def seed_locations():
         for code, name in LOCATIONS:
             db.add(Location(code=code, name=name))
         db.commit()
+    db.close()
+
+
+def seed_categories():
+    db = SessionLocal()
+    existing = db.query(Category).count()
+
+    if existing == 0:
+        for name in CATEGORIES:
+            db.add(Category(name=name))
+
+        db.commit()
+
     db.close()
