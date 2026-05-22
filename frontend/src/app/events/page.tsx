@@ -3,6 +3,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Asset,
   Event,
@@ -27,6 +28,8 @@ import {
 } from "@/lib/api";
 
 export default function EventsPage() {
+  const searchParams = useSearchParams();
+  const eventIdFromUrl = searchParams.get("eventId");
   const [events, setEvents] = useState<Event[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [stocks, setStocks] = useState<StockCard[]>([]);
@@ -70,6 +73,17 @@ export default function EventsPage() {
     setItems(itemsData);
     setLocations(locationsData);
 
+    if (eventIdFromUrl) {
+      const eventExists = eventsData.some(
+        (event) => event.id === Number(eventIdFromUrl)
+      );
+
+      if (eventExists) {
+        setSelectedEventId(eventIdFromUrl);
+        return;
+      }
+    }
+
     if (!selectedEventId && eventsData.length > 0) {
       setSelectedEventId(String(eventsData[0].id));
     }
@@ -95,7 +109,7 @@ export default function EventsPage() {
     }
 
     load();
-  }, []);
+  }, [eventIdFromUrl]);
 
   useEffect(() => {
     loadEventDetail(selectedEventId);
@@ -135,6 +149,19 @@ export default function EventsPage() {
   function linkedStockLabel(stockCardId: number) {
     const stock = stocks.find((s) => s.id === stockCardId);
     return stock ? stockLabel(stock) : `Stock ID ${stockCardId}`;
+  }
+
+  function getReadableError(error: unknown) {
+    if (!(error instanceof Error)) {
+      return "Operazione non riuscita.";
+    }
+
+    try {
+      const parsed = JSON.parse(error.message) as { detail?: string };
+      return parsed.detail ?? error.message;
+    } catch {
+      return error.message;
+    }
   }
 
   async function handleCreateEvent(e: React.FormEvent) {
@@ -317,8 +344,7 @@ export default function EventsPage() {
       await loadEventDetail(String(selectedEvent.id));
       alert("Evento chiuso correttamente");
     } catch (error) {
-      console.error(error);
-      alert("Impossibile chiudere evento. Verifica che tutto il materiale sia rientrato.");
+      alert(getReadableError(error));
     } finally {
       setEventActionLoading(false);
     }
@@ -341,8 +367,7 @@ export default function EventsPage() {
       await loadEventDetail(String(selectedEvent.id));
       alert("Evento annullato correttamente");
     } catch (error) {
-      console.error(error);
-      alert("Impossibile annullare evento. Se ci sono materiali collegati, registra i rientri o chiudi l'evento.");
+      alert(getReadableError(error));
     } finally {
       setEventActionLoading(false);
     }
@@ -458,7 +483,10 @@ export default function EventsPage() {
           <select
             className="w-full rounded-xl border p-3"
             value={selectedEventId}
-            onChange={(e) => setSelectedEventId(e.target.value)}
+            onChange={(e) => {
+              setSelectedEventId(e.target.value);
+              window.history.replaceState(null, "", `/events?eventId=${e.target.value}`);
+            }}
           >
             {events.map((event) => (
               <option key={event.id} value={event.id}>

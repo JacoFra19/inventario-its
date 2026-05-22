@@ -1,4 +1,4 @@
-import { getAssets, getEvents, getStocks } from "@/lib/api";
+import { getAssets, getEvent, getEvents, getStocks } from "@/lib/api";
 
 export default async function Home() {
   const [assets, stocks, events] = await Promise.all([
@@ -31,6 +31,11 @@ export default async function Home() {
     assetMancanti > 0 ||
     eventiAperti > 0;
 
+  const latestEvents = events.slice(0, 4);
+  const latestEventDetails = await Promise.all(
+    latestEvents.map((event) => getEvent(event.id))
+  );
+
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <section className="mb-8 rounded-3xl bg-gray-900 p-8 text-white shadow">
@@ -44,6 +49,106 @@ export default async function Home() {
           Dashboard operativa per la gestione di asset, sedi, assegnazioni,
           trasferimenti e QR inventariali.
         </p>
+      </section>
+
+      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-wide text-gray-500">
+              Eventi recenti
+            </p>
+            <h2 className="mt-1 text-2xl font-bold">
+              Ultime movimentazioni logistiche
+            </h2>
+          </div>
+
+          <a href="/events" className="text-sm font-semibold text-blue-600 hover:underline">
+            Vai agli eventi →
+          </a>
+        </div>
+
+        {latestEventDetails.length === 0 ? (
+          <p className="mt-5 text-gray-500">
+            Nessun evento presente.
+          </p>
+        ) : (
+          <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {latestEventDetails.map((detail) => {
+              const openAssets = detail.assets.filter(
+                (eventAsset) => eventAsset.status === "OUT"
+              ).length;
+
+              const missingAssets = detail.assets.filter(
+                (eventAsset) => eventAsset.status === "MISSING"
+              ).length;
+
+              const stockToReturn = detail.stocks.reduce(
+                (total, eventStock) =>
+                  total + Math.max(0, eventStock.quantity_out - eventStock.quantity_returned),
+                0
+              );
+
+              const needsAttention =
+                detail.event.status === "OPEN" &&
+                (openAssets > 0 || stockToReturn > 0 || missingAssets > 0);
+
+              return (
+                <a
+                  key={detail.event.id}
+                  href={`/events?eventId=${detail.event.id}`}
+                  className="rounded-2xl border p-5 transition hover:bg-gray-50"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold">{detail.event.name}</h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {detail.event.location ?? "Luogo non indicato"}
+                      </p>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {detail.event.start_date ?? "Data non indicata"} → {detail.event.end_date ?? "Data non indicata"}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                        detail.event.status === "OPEN"
+                          ? "bg-blue-100 text-blue-700"
+                          : detail.event.status === "CLOSED"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {detail.event.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">Asset fuori</p>
+                      <p className="mt-1 text-xl font-bold">{openAssets}</p>
+                    </div>
+
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">Stock da rientrare</p>
+                      <p className="mt-1 text-xl font-bold">{stockToReturn}</p>
+                    </div>
+
+                    <div className="rounded-xl bg-gray-50 p-3">
+                      <p className="text-xs text-gray-500">Mancanti</p>
+                      <p className="mt-1 text-xl font-bold">{missingAssets}</p>
+                    </div>
+                  </div>
+
+                  {needsAttention && (
+                    <p className="mt-4 rounded-xl bg-yellow-50 p-3 text-sm font-medium text-yellow-800">
+                      Materiale ancora da verificare prima della chiusura.
+                    </p>
+                  )}
+                </a>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-5">
