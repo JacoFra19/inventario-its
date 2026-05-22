@@ -7,7 +7,7 @@ from io import BytesIO
 import qrcode
 
 from .db import engine, SessionLocal
-from .models import Base, Location, LocationCounter, Item, Asset, AssetMovement, StockCard, StockMovement
+from .models import Base, Location, LocationCounter, Item, Asset, AssetMovement, StockCard, StockMovement, Event, EventAsset, EventStock
 from .seed import seed_locations
 
 app = FastAPI(title="Inventario ITS", version="0.2.0")
@@ -444,3 +444,166 @@ def stock_history(stock_id: int):
     )
     db.close()
     return rows
+
+
+# --- EVENTS ENDPOINTS ---
+
+@app.get("/events")
+def list_events():
+    db = SessionLocal()
+    rows = db.query(Event).order_by(Event.created_at.desc()).all()
+    db.close()
+    return rows
+
+
+@app.post("/events")
+def create_event(
+    name: str = Body(...),
+    location: str | None = Body(None),
+    start_date: str | None = Body(None),
+    end_date: str | None = Body(None),
+    manager: str | None = Body(None),
+    notes: str | None = Body(None),
+):
+    db = SessionLocal()
+
+    try:
+        event = Event(
+            name=name,
+            location=location,
+            start_date=start_date,
+            end_date=end_date,
+            manager=manager,
+            notes=notes,
+            status="OPEN",
+        )
+        db.add(event)
+        db.commit()
+        db.refresh(event)
+        return event
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.get("/events/{event_id}")
+def get_event(event_id: int):
+    db = SessionLocal()
+
+    event = db.execute(select(Event).where(Event.id == event_id)).scalar_one_or_none()
+    if not event:
+        db.close()
+        raise HTTPException(status_code=404, detail="Evento non trovato")
+
+    assets = db.query(EventAsset).filter(EventAsset.event_id == event_id).all()
+    stocks = db.query(EventStock).filter(EventStock.event_id == event_id).all()
+
+    db.close()
+
+    return {
+        "event": event,
+        "assets": assets,
+        "stocks": stocks,
+    }
+
+
+@app.post("/events/{event_id}/assets")
+def add_asset_to_event(
+    event_id: int,
+    asset_id: int = Body(...),
+    notes: str | None = Body(None),
+):
+    db = SessionLocal()
+
+    try:
+        event = db.execute(select(Event).where(Event.id == event_id)).scalar_one_or_none()
+        if not event:
+            raise HTTPException(status_code=404, detail="Evento non trovato")
+
+        asset = db.execute(select(Asset).where(Asset.id == asset_id)).scalar_one_or_none()
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset non trovato")
+
+        existing = db.execute(
+            select(EventAsset).where(
+                EventAsset.event_id == event_id,
+                EventAsset.asset_id == asset_id,
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            raise HTTPException(status_code=400, detail="Asset già collegato a questo evento")
+
+        event_asset = EventAsset(
+            event_id=event.id,
+            asset_id=asset.id,
+            status="OUT",
+            notes=notes,
+        )
+        db.add(event_asset)
+
+        asset.status = "IN_EVENTO"
+
+        db.commit()
+        db.refresh(event_asset)
+        return event_asset
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.post("/events/{event_id}/stocks")
+def add_stock_to_event(
+    event_id: int,
+    stock_card_id: int = Body(...),
+    quantity_out: int = Body(...),
+    notes: str | None = Body(None),
+):
+    db = SessionLocal()
+
+    try:
+        event = db.execute(select(Event).where(Event.id == event_id)).scalar_one_or_none()
+        if not event:
+            raise HTTPException(status_code=404, detail="Evento non trovato")
+
+        stock = db.execute(select(StockCard).where(StockCard.id == stock_card_id)).scalar_one_or_none()
+        if not stock:
+            raise HTTPException(status_code=404, detail="Scheda stock non trovata")
+
+        if quantity_out <= 0:
+            raise HTTPException(status_code=400, detail="La quantità in uscita deve essere maggiore di zero")
+
+        if quantity_out > stock.quantity:
+            raise HTTPException(status_code=400, detail="Quantità stock insufficiente")
+
+        stock.quantity -= quantity_out
+
+        event_stock = EventStock(
+            event_id=event.id,
+            stock_card_id=stock.id,
+            quantity_out=quantity_out,
+            quantity_returned=0,
+            notes=notes,
+        )
+        db.add(event_stock)
+
+        movement = StockMovement(
+            stock_card_id=stock.id,
+            movement_type="UNLOAD",
+            quantity=quantity_out,
+            notes=f"Uscita per evento: {event.name}" if not notes else f"Uscita per evento: {event.name} - {notes}",
+        )
+        db.add(movement)
+
+        db.commit()
+        db.refresh(event_stock)
+        return event_stock
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()

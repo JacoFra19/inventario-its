@@ -283,3 +283,146 @@ export async function unassignAsset(assetId: number) {
 
   return res.json();
 }
+
+export type Event = {
+  id: number;
+  name: string;
+  location: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  manager: string | null;
+  notes: string | null;
+  status: string;
+  created_at: string;
+};
+
+export type EventAsset = {
+  id: number;
+  event_id: number;
+  asset_id: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  returned_at: string | null;
+};
+
+export type EventStock = {
+  id: number;
+  event_id: number;
+  stock_card_id: number;
+  quantity_out: number;
+  quantity_returned: number;
+  notes: string | null;
+  created_at: string;
+};
+
+export type EventDetail = {
+  event: Event;
+  assets: EventAsset[];
+  stocks: EventStock[];
+};
+
+export async function getEvents(): Promise<Event[]> {
+  const res = await fetch(`${API_BASE}/events`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero degli eventi");
+  }
+
+  return res.json();
+}
+
+export async function createEvent(input: {
+  name: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  manager?: string;
+  notes?: string;
+}): Promise<Event> {
+  const res = await fetch(`${API_BASE}/events`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: input.name,
+      location: input.location || null,
+      start_date: input.startDate || null,
+      end_date: input.endDate || null,
+      manager: input.manager || null,
+      notes: input.notes || null,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function getEvent(eventId: number): Promise<EventDetail> {
+  const res = await fetch(`${API_BASE}/events/${eventId}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function addAssetToEvent(input: {
+  eventId: number;
+  assetId: number;
+  notes?: string;
+}): Promise<EventAsset> {
+  const res = await fetch(`${API_BASE}/events/${input.eventId}/assets`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      asset_id: input.assetId,
+      notes: input.notes || null,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function addStockToEvent(input: {
+  eventId: number;
+  stockCardId: number;
+  quantityOut: number;
+  notes?: string;
+}): Promise<EventStock> {
+  const res = await fetch(`${API_BASE}/events/${input.eventId}/stocks`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      stock_card_id: input.stockCardId,
+      quantity_out: input.quantityOut,
+      notes: input.notes || null,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}

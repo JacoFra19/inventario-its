@@ -102,3 +102,59 @@ class StockMovement(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     stock_card = relationship("StockCard")
+
+
+# Event-related models
+class Event(Base):
+    __tablename__ = "events"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    name = Column(String(255), nullable=False)
+    location = Column(String(255), nullable=True)
+    start_date = Column(String(20), nullable=True)
+    end_date = Column(String(20), nullable=True)
+    manager = Column(String(255), nullable=True)
+    notes = Column(String(500), nullable=True)
+
+    status = Column(String(20), nullable=False, default="OPEN")  # OPEN, CLOSED
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class EventAsset(Base):
+    __tablename__ = "event_assets"
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "asset_id", name="uq_event_asset"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False, index=True)
+
+    status = Column(String(20), nullable=False, default="OUT")  # OUT, RETURNED, MISSING
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    returned_at = Column(DateTime, nullable=True)
+
+    event = relationship("Event")
+    asset = relationship("Asset")
+
+
+class EventStock(Base):
+    __tablename__ = "event_stocks"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    event_id = Column(Integer, ForeignKey("events.id"), nullable=False, index=True)
+    stock_card_id = Column(Integer, ForeignKey("stock_cards.id"), nullable=False, index=True)
+
+    quantity_out = Column(Integer, nullable=False)
+    quantity_returned = Column(Integer, nullable=False, default=0)
+
+    notes = Column(String(500), nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    event = relationship("Event")
+    stock_card = relationship("StockCard")

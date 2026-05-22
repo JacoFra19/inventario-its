@@ -1,13 +1,17 @@
-import { getAssets, getLocations } from "@/lib/api";
+import { getAssets, getLocations, getStocks } from "@/lib/api";
 
 export default async function Home() {
-  const [assets, locations] = await Promise.all([
+  const [assets, locations, stocks] = await Promise.all([
     getAssets(),
     getLocations(),
+    getStocks(),
   ]);
 
   const inSede = assets.filter((asset) => asset.status === "IN_SEDE").length;
   const assegnati = assets.filter((asset) => asset.status === "ASSEGNATO").length;
+  const stockSottoSoglia = stocks.filter(
+    (stock) => stock.quantity <= stock.min_threshold
+  ).length;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -24,7 +28,7 @@ export default async function Home() {
         </p>
       </section>
 
-      <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-5">
         <div className="rounded-2xl bg-white p-6 shadow">
           <p className="text-sm text-gray-500">Asset totali</p>
           <p className="mt-2 text-3xl font-bold">{assets.length}</p>
@@ -41,20 +45,25 @@ export default async function Home() {
         </div>
 
         <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-sm text-gray-500">Sedi censite</p>
-          <p className="mt-2 text-3xl font-bold">{locations.length}</p>
+          <p className="text-sm text-gray-500">Stockcard</p>
+          <p className="mt-2 text-3xl font-bold">{stocks.length}</p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-6 shadow">
+          <p className="text-sm text-gray-500">Stock sotto soglia</p>
+          <p className="mt-2 text-3xl font-bold">{stockSottoSoglia}</p>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <a
           href="/assets"
           className="rounded-2xl bg-blue-600 p-6 text-white shadow transition hover:bg-blue-700"
         >
           <p className="text-sm uppercase tracking-wide text-blue-100">
-            Gestione inventario
+            Asset serializzati
           </p>
-          <h2 className="mt-2 text-2xl font-bold">Vai agli Asset</h2>
+          <h2 className="mt-2 text-2xl font-bold">Gestisci Asset</h2>
           <p className="mt-2 text-blue-100">
             Consulta, crea, trasferisci e assegna i beni inventariati.
           </p>
@@ -73,16 +82,41 @@ export default async function Home() {
           </p>
         </a>
 
-        <div className="rounded-2xl bg-white p-6 shadow md:col-span-1">
+        <a
+          href="/stocks"
+          className="rounded-2xl bg-emerald-600 p-6 text-white shadow transition hover:bg-emerald-700"
+        >
+          <p className="text-sm uppercase tracking-wide text-emerald-100">
+            Consumabili
+          </p>
+          <h2 className="mt-2 text-2xl font-bold">Stock e consumabili</h2>
+          <p className="mt-2 text-emerald-100">
+            Gestisci quantità, carichi, scarichi, rientri e soglie minime.
+          </p>
+        </a>
+
+        <a
+          href="/labels"
+          className="rounded-2xl bg-white p-6 text-gray-900 shadow transition hover:bg-gray-50"
+        >
+          <p className="text-sm uppercase tracking-wide text-gray-500">
+            Etichette
+          </p>
+          <h2 className="mt-2 text-2xl font-bold">Stampa QR</h2>
+          <p className="mt-2 text-gray-600">
+            Seleziona gli asset e stampa le etichette QR da applicare ai beni.
+          </p>
+        </a>
+
+        <div className="rounded-2xl bg-white p-6 shadow md:col-span-2 xl:col-span-4">
           <p className="text-sm uppercase tracking-wide text-gray-500">
             Prossimi moduli
           </p>
           <h2 className="mt-2 text-2xl font-bold">In evoluzione</h2>
           <ul className="mt-3 space-y-2 text-gray-600">
-            <li>• stampa etichette QR</li>
             <li>• alert ritardi e incongruenze</li>
-            <li>• gestione stock e consumabili</li>
             <li>• modulo eventi e fiere</li>
+            <li>• login utenti e permessi</li>
           </ul>
         </div>
       </section>
