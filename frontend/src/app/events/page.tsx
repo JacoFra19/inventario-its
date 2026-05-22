@@ -373,9 +373,17 @@ export default function EventsPage() {
     }
   }
 
+  function handlePrintReport() {
+    window.print();
+  }
+
+  function reportDate(value: string | null) {
+    return value || "-";
+  }
+
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <main className="min-h-screen bg-gray-50 p-8 print:bg-white print:p-0">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between print:hidden">
         <div>
           <a href="/" className="text-blue-600 hover:underline">
             ← Dashboard
@@ -387,15 +395,26 @@ export default function EventsPage() {
           </p>
         </div>
 
-        <a
-          href="/stocks"
-          className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"
-        >
-          Vai agli Stock
-        </a>
+        <div className="flex flex-col gap-2 sm:flex-row print:hidden">
+          {selectedEvent && (
+            <button
+              onClick={handlePrintReport}
+              className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white hover:bg-black"
+            >
+              Stampa report
+            </button>
+          )}
+
+          <a
+            href="/stocks"
+            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"
+          >
+            Vai agli Stock
+          </a>
+        </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3 print:hidden">
         <div className="rounded-2xl bg-white p-5 shadow">
           <p className="text-sm text-gray-500">Eventi totali</p>
           <p className="text-3xl font-bold">{events.length}</p>
@@ -416,7 +435,7 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+      <section className="mb-8 rounded-2xl bg-white p-6 shadow print:hidden">
         <h2 className="mb-4 text-xl font-bold">Crea nuovo evento</h2>
 
         <form onSubmit={handleCreateEvent} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -472,7 +491,7 @@ export default function EventsPage() {
         </form>
       </section>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+      <section className="mb-8 rounded-2xl bg-white p-6 shadow print:hidden">
         <h2 className="mb-4 text-xl font-bold">Seleziona evento</h2>
 
         {loading ? (
@@ -498,7 +517,7 @@ export default function EventsPage() {
       </section>
 
       {selectedEvent && (
-        <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+        <section className="mb-8 rounded-2xl bg-white p-6 shadow print:hidden">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-3">
@@ -637,7 +656,7 @@ export default function EventsPage() {
       )}
 
       {eventDetail && (
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 print:hidden">
           <div className="rounded-2xl bg-white p-6 shadow">
             <h2 className="mb-4 text-xl font-bold">Asset collegati</h2>
             {eventDetail.assets.length === 0 ? (
@@ -756,6 +775,120 @@ export default function EventsPage() {
                 })}
               </div>
             )}
+          </div>
+        </section>
+      )}
+      {selectedEvent && eventDetail && (
+        <section className="hidden print:block print:p-8">
+          <div className="border-b pb-4">
+            <p className="text-sm uppercase tracking-wide text-gray-500">
+              Report logistico evento
+            </p>
+            <h1 className="mt-2 text-3xl font-bold">{selectedEvent.name}</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Stato: {selectedEvent.status}
+            </p>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="font-semibold">Luogo</p>
+              <p>{selectedEvent.location ?? "-"}</p>
+            </div>
+
+            <div>
+              <p className="font-semibold">Referente</p>
+              <p>{selectedEvent.manager ?? "-"}</p>
+            </div>
+
+            <div>
+              <p className="font-semibold">Data inizio</p>
+              <p>{reportDate(selectedEvent.start_date)}</p>
+            </div>
+
+            <div>
+              <p className="font-semibold">Data fine</p>
+              <p>{reportDate(selectedEvent.end_date)}</p>
+            </div>
+          </div>
+
+          {selectedEvent.notes && (
+            <div className="mt-6 text-sm">
+              <p className="font-semibold">Note evento</p>
+              <p>{selectedEvent.notes}</p>
+            </div>
+          )}
+
+          <div className="mt-8">
+            <h2 className="mb-3 text-xl font-bold">Asset serializzati</h2>
+
+            {eventDetail.assets.length === 0 ? (
+              <p className="text-sm text-gray-600">Nessun asset collegato.</p>
+            ) : (
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr>
+                    <th className="border p-2 text-left">Codice</th>
+                    <th className="border p-2 text-left">Stato</th>
+                    <th className="border p-2 text-left">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {eventDetail.assets.map((eventAsset) => (
+                    <tr key={eventAsset.id}>
+                      <td className="border p-2">{linkedAssetLabel(eventAsset.asset_id)}</td>
+                      <td className="border p-2">{eventAsset.status}</td>
+                      <td className="border p-2">{eventAsset.notes ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="mt-8">
+            <h2 className="mb-3 text-xl font-bold">Stock e consumabili</h2>
+
+            {eventDetail.stocks.length === 0 ? (
+              <p className="text-sm text-gray-600">Nessuno stock collegato.</p>
+            ) : (
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr>
+                    <th className="border p-2 text-left">Stockcard</th>
+                    <th className="border p-2 text-left">Usciti</th>
+                    <th className="border p-2 text-left">Rientrati</th>
+                    <th className="border p-2 text-left">Da rientrare</th>
+                    <th className="border p-2 text-left">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {eventDetail.stocks.map((eventStock) => {
+                    const remaining =
+                      eventStock.quantity_out - eventStock.quantity_returned;
+
+                    return (
+                      <tr key={eventStock.id}>
+                        <td className="border p-2">{linkedStockLabel(eventStock.stock_card_id)}</td>
+                        <td className="border p-2">{eventStock.quantity_out}</td>
+                        <td className="border p-2">{eventStock.quantity_returned}</td>
+                        <td className="border p-2">{remaining}</td>
+                        <td className="border p-2">{eventStock.notes ?? "-"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="mt-12 grid grid-cols-2 gap-12 text-sm">
+            <div>
+              <p className="border-t pt-2 font-semibold">Firma consegna</p>
+            </div>
+            <div>
+              <p className="border-t pt-2 font-semibold">Firma rientro</p>
+            </div>
           </div>
         </section>
       )}
