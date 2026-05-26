@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Item,
   Location,
@@ -24,6 +25,8 @@ const movementLabels: Record<MovementType, string> = {
 };
 
 export default function StocksPage() {
+  const searchParams = useSearchParams();
+  const lowStockFromUrl = searchParams.get("lowStock") === "1";
   const [stocks, setStocks] = useState<StockCard[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -49,6 +52,12 @@ export default function StocksPage() {
   const [locationFilter, setLocationFilter] = useState("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
   const [lowStockOnly, setLowStockOnly] = useState(false);
+
+  useEffect(() => {
+    if (lowStockFromUrl) {
+      setLowStockOnly(true);
+    }
+  }, [lowStockFromUrl]);
 
   async function loadData() {
     const [stocksData, itemsData, locationsData] = await Promise.all([
@@ -297,6 +306,7 @@ export default function StocksPage() {
               setLocationFilter("ALL");
               setCategoryFilter("ALL");
               setLowStockOnly(false);
+              window.history.replaceState(null, "", "/stocks");
             }}
             className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
           >
@@ -357,7 +367,14 @@ export default function StocksPage() {
             <input
               type="checkbox"
               checked={lowStockOnly}
-              onChange={(e) => setLowStockOnly(e.target.checked)}
+              onChange={(e) => {
+                setLowStockOnly(e.target.checked);
+                window.history.replaceState(
+                  null,
+                  "",
+                  e.target.checked ? "/stocks?lowStock=1" : "/stocks"
+                );
+              }}
             />
             Solo sotto soglia
           </label>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Asset,
   Item,
@@ -12,6 +13,8 @@ import {
 } from "@/lib/api";
 
 export default function AssetsPage() {
+  const searchParams = useSearchParams();
+  const statusFromUrl = searchParams.get("status");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -23,6 +26,12 @@ export default function AssetsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [locationFilter, setLocationFilter] = useState("ALL");
+
+  useEffect(() => {
+    if (statusFromUrl) {
+      setStatusFilter(statusFromUrl);
+    }
+  }, [statusFromUrl]);
 
   async function loadData() {
     const [assetsData, itemsData, locationsData] = await Promise.all([
@@ -229,6 +238,7 @@ export default function AssetsPage() {
               setSearch("");
               setStatusFilter("ALL");
               setLocationFilter("ALL");
+              window.history.replaceState(null, "", "/assets");
             }}
             className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
           >
@@ -256,7 +266,14 @@ export default function AssetsPage() {
             <select
               className="w-full rounded-xl border p-3 shadow-sm"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                window.history.replaceState(
+                  null,
+                  "",
+                  e.target.value === "ALL" ? "/assets" : `/assets?status=${e.target.value}`
+                );
+              }}
             >
               <option value="ALL">Tutti gli stati</option>
               {uniqueStatuses.map((status) => (

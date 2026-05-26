@@ -285,7 +285,7 @@ export default async function Home() {
 
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
           <a
-            href="/stocks"
+            href="/stocks?lowStock=1"
             className="rounded-xl border p-4 transition hover:bg-gray-50"
           >
             <p className="text-sm text-gray-500">Stock sotto soglia</p>
@@ -293,7 +293,7 @@ export default async function Home() {
           </a>
 
           <a
-            href="/events"
+            href="/events?status=OPEN"
             className="rounded-xl border p-4 transition hover:bg-gray-50"
           >
             <p className="text-sm text-gray-500">Eventi aperti</p>
@@ -301,7 +301,7 @@ export default async function Home() {
           </a>
 
           <a
-            href="/assets"
+            href="/assets?status=IN_EVENTO"
             className="rounded-xl border p-4 transition hover:bg-gray-50"
           >
             <p className="text-sm text-gray-500">Asset in evento</p>
@@ -309,7 +309,7 @@ export default async function Home() {
           </a>
 
           <a
-            href="/assets"
+            href="/assets?status=MANCANTE"
             className="rounded-xl border p-4 transition hover:bg-gray-50"
           >
             <p className="text-sm text-gray-500">Asset mancanti</p>
