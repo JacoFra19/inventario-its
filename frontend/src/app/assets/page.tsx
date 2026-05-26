@@ -89,6 +89,12 @@ export default function AssetsPage() {
     return item.category?.name ?? "Categoria non impostata";
   }
 
+  const totalAssets = assets.length;
+  const inSedeCount = assets.filter((a) => a.status === "IN_SEDE").length;
+  const assegnatiCount = assets.filter((a) => a.status === "ASSEGNATO").length;
+  const inEventoCount = assets.filter((a) => a.status === "IN_EVENTO").length;
+  const mancantiCount = assets.filter((a) => a.status === "MANCANTE").length;
+
   const filteredAssets = assets.filter((asset) => {
     const matchesStatus =
       statusFilter === "ALL" || asset.status === statusFilter;
@@ -145,32 +151,79 @@ export default function AssetsPage() {
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-2xl bg-white p-5 shadow">
           <p className="text-sm text-gray-500">Asset totali</p>
-          <p className="text-3xl font-bold">{assets.length}</p>
+          <p className="mt-2 text-3xl font-bold">{totalAssets}</p>
         </div>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">In sede</p>
-          <p className="text-3xl font-bold">
-            {assets.filter((a) => a.status === "IN_SEDE").length}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter("IN_SEDE");
+            window.history.replaceState(null, "", "/assets?status=IN_SEDE");
+          }}
+          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-emerald-50"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">In sede</p>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("IN_SEDE")}`}>
+              IN_SEDE
+            </span>
+          </div>
+          <p className="mt-2 text-3xl font-bold">{inSedeCount}</p>
+        </button>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">Assegnati</p>
-          <p className="text-3xl font-bold">
-            {assets.filter((a) => a.status === "ASSEGNATO").length}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter("ASSEGNATO");
+            window.history.replaceState(null, "", "/assets?status=ASSEGNATO");
+          }}
+          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-blue-50"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">Assegnati</p>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("ASSEGNATO")}`}>
+              ASSEGNATO
+            </span>
+          </div>
+          <p className="mt-2 text-3xl font-bold">{assegnatiCount}</p>
+        </button>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">Sedi usate</p>
-          <p className="text-3xl font-bold">
-            {new Set(assets.map((a) => a.current_location_id)).size}
-          </p>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter("IN_EVENTO");
+            window.history.replaceState(null, "", "/assets?status=IN_EVENTO");
+          }}
+          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-orange-50"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">In evento</p>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("IN_EVENTO")}`}>
+              IN_EVENTO
+            </span>
+          </div>
+          <p className="mt-2 text-3xl font-bold">{inEventoCount}</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter("MANCANTE");
+            window.history.replaceState(null, "", "/assets?status=MANCANTE");
+          }}
+          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-red-50"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">Mancanti</p>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("MANCANTE")}`}>
+              MANCANTE
+            </span>
+          </div>
+          <p className="mt-2 text-3xl font-bold">{mancantiCount}</p>
+        </button>
       </div>
 
       <section className="mb-8 rounded-2xl bg-white p-6 shadow">
@@ -342,7 +395,7 @@ export default function AssetsPage() {
                 </td>
                 <td className="p-4">{locationLabel(asset.current_location_id)}</td>
                 <td className="p-4">
-                  <span className={`rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(asset.status)}`}>
+                  <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(asset.status)}`}>
                     {asset.status}
                   </span>
                 </td>
