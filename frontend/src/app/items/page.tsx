@@ -1,11 +1,10 @@
-
-
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import {
   Category,
   Item,
+  createItem,
   deleteItem,
   getCategories,
   getItems,
@@ -20,6 +19,7 @@ export default function ItemsPage() {
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
+  const [creatingItem, setCreatingItem] = useState(false);
 
   const [editName, setEditName] = useState("");
   const [editCategoryId, setEditCategoryId] = useState("");
@@ -27,6 +27,13 @@ export default function ItemsPage() {
   const [editModel, setEditModel] = useState("");
   const [editTechnicalSpecs, setEditTechnicalSpecs] = useState("");
   const [editSerialized, setEditSerialized] = useState(true);
+
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemCategoryId, setNewItemCategoryId] = useState("");
+  const [newItemBrand, setNewItemBrand] = useState("");
+  const [newItemModel, setNewItemModel] = useState("");
+  const [newItemTechnicalSpecs, setNewItemTechnicalSpecs] = useState("");
+  const [newItemSerialized, setNewItemSerialized] = useState(true);
 
   useEffect(() => {
     loadData();
@@ -76,6 +83,34 @@ export default function ItemsPage() {
     setEditModel("");
     setEditTechnicalSpecs("");
     setEditSerialized(true);
+  }
+
+  async function handleCreateItem(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newItemName || !newItemCategoryId) return;
+
+    setCreatingItem(true);
+
+    try {
+      await createItem({
+        name: newItemName,
+        categoryId: Number(newItemCategoryId),
+        brand: newItemBrand,
+        model: newItemModel,
+        technicalSpecs: newItemTechnicalSpecs,
+        isSerialized: newItemSerialized,
+      });
+
+      setNewItemName("");
+      setNewItemCategoryId("");
+      setNewItemBrand("");
+      setNewItemModel("");
+      setNewItemTechnicalSpecs("");
+      setNewItemSerialized(true);
+      await loadData();
+    } finally {
+      setCreatingItem(false);
+    }
   }
 
   async function handleSave() {
@@ -133,7 +168,11 @@ export default function ItemsPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-wide text-gray-500">
+            <a href="/" className="text-blue-600 hover:underline">
+              ← Dashboard
+            </a>
+
+            <p className="mt-4 text-sm uppercase tracking-wide text-gray-500">
               Catalogo tecnico
             </p>
             <h1 className="text-4xl font-black text-gray-900">
@@ -153,6 +192,74 @@ export default function ItemsPage() {
             </a>
           </div>
         </div>
+
+        <section className="mb-6 rounded-2xl bg-white p-6 shadow">
+          <h2 className="mb-4 text-xl font-bold">Nuovo item</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Crea una nuova tipologia bene da usare poi nella creazione degli asset fisici.
+          </p>
+
+          <form onSubmit={handleCreateItem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <input
+              className="rounded-xl border p-3"
+              placeholder="Nome item, es. MacBook Pro 14"
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+            />
+
+            <select
+              className="rounded-xl border p-3"
+              value={newItemCategoryId}
+              onChange={(e) => setNewItemCategoryId(e.target.value)}
+            >
+              <option value="">Seleziona categoria</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              className="rounded-xl border p-3"
+              placeholder="Marca, es. Apple"
+              value={newItemBrand}
+              onChange={(e) => setNewItemBrand(e.target.value)}
+            />
+
+            <input
+              className="rounded-xl border p-3"
+              placeholder="Modello, es. M4 Pro"
+              value={newItemModel}
+              onChange={(e) => setNewItemModel(e.target.value)}
+            />
+
+            <textarea
+              className="rounded-xl border p-3 md:col-span-3"
+              placeholder="Specifiche tecniche, es. 24GB RAM, 1TB SSD, CPU 12-core..."
+              value={newItemTechnicalSpecs}
+              onChange={(e) => setNewItemTechnicalSpecs(e.target.value)}
+              rows={3}
+            />
+
+            <label className="flex items-center gap-2 rounded-xl border p-3 md:col-span-1">
+              <input
+                type="checkbox"
+                checked={newItemSerialized}
+                onChange={(e) => setNewItemSerialized(e.target.checked)}
+              />
+              Serializzato
+            </label>
+
+            <button
+              type="submit"
+              disabled={creatingItem || !newItemName || !newItemCategoryId}
+              className="rounded-xl bg-gray-900 p-3 font-semibold text-white hover:bg-black disabled:opacity-50 md:col-span-4"
+            >
+              {creatingItem ? "Creo..." : "Crea item"}
+            </button>
+          </form>
+        </section>
 
         <section className="mb-6 rounded-2xl bg-white p-6 shadow">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

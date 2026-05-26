@@ -235,7 +235,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
         <a
           href="/assets"
           className="rounded-2xl bg-blue-600 p-6 text-white shadow transition hover:bg-blue-700"
@@ -246,6 +246,19 @@ export default async function Home() {
           <h2 className="mt-2 text-2xl font-bold">Gestisci Asset</h2>
           <p className="mt-2 text-blue-100">
             Consulta, crea, trasferisci e assegna i beni inventariati.
+          </p>
+        </a>
+
+        <a
+          href="/items"
+          className="rounded-2xl bg-indigo-600 p-6 text-white shadow transition hover:bg-indigo-700"
+        >
+          <p className="text-sm uppercase tracking-wide text-indigo-100">
+            Catalogo tecnico
+          </p>
+          <h2 className="mt-2 text-2xl font-bold">Gestisci Item</h2>
+          <p className="mt-2 text-indigo-100">
+            Crea, modifica e pulisci le tipologie bene usate dagli asset.
           </p>
         </a>
 
@@ -301,7 +314,7 @@ export default async function Home() {
           </p>
         </a>
 
-        <div className="rounded-2xl bg-white p-6 shadow md:col-span-2 xl:col-span-5">
+        <div className="rounded-2xl bg-white p-6 shadow md:col-span-2 xl:col-span-6">
           <p className="text-sm uppercase tracking-wide text-gray-500">
             Prossimi moduli
           </p>

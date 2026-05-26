@@ -3,20 +3,16 @@
 import { useEffect, useState } from "react";
 import {
   Asset,
-  Category,
   Item,
   Location,
   createAsset,
-  createItem,
   getAssets,
   getItems,
   getLocations,
-  getCategories,
 } from "@/lib/api";
 
 export default function AssetsPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
 
@@ -28,26 +24,16 @@ export default function AssetsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [locationFilter, setLocationFilter] = useState("ALL");
 
-  const [newItemName, setNewItemName] = useState("");
-  const [newItemCategoryId, setNewItemCategoryId] = useState("");
-  const [newItemBrand, setNewItemBrand] = useState("");
-  const [newItemModel, setNewItemModel] = useState("");
-  const [newItemTechnicalSpecs, setNewItemTechnicalSpecs] = useState("");
-  const [newItemSerialized, setNewItemSerialized] = useState(true);
-  const [creatingItem, setCreatingItem] = useState(false);
-
   async function loadData() {
-    const [assetsData, itemsData, locationsData, categoriesData] = await Promise.all([
+    const [assetsData, itemsData, locationsData] = await Promise.all([
       getAssets(),
       getItems(),
       getLocations(),
-      getCategories(),
     ]);
 
     setAssets(assetsData);
     setItems(itemsData);
     setLocations(locationsData);
-    setCategories(categoriesData);
   }
 
   useEffect(() => {
@@ -73,34 +59,6 @@ export default function AssetsPage() {
       await loadData();
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleCreateItem(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newItemName || !newItemCategoryId) return;
-
-    setCreatingItem(true);
-
-    try {
-      await createItem({
-        name: newItemName,
-        categoryId: Number(newItemCategoryId),
-        brand: newItemBrand,
-        model: newItemModel,
-        technicalSpecs: newItemTechnicalSpecs,
-        isSerialized: newItemSerialized,
-      });
-
-      setNewItemName("");
-      setNewItemCategoryId("");
-      setNewItemBrand("");
-      setNewItemModel("");
-      setNewItemTechnicalSpecs("");
-      setNewItemSerialized(true);
-      await loadData();
-    } finally {
-      setCreatingItem(false);
     }
   }
 
@@ -161,12 +119,21 @@ export default function AssetsPage() {
           </p>
         </div>
 
-        <a
-          href="/scan"
-          className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white shadow hover:bg-black"
-        >
-          Apri Scanner QR
-        </a>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <a
+            href="/items"
+            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"
+          >
+            Catalogo Item
+          </a>
+
+          <a
+            href="/scan"
+            className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white shadow hover:bg-black"
+          >
+            Apri Scanner QR
+          </a>
+        </div>
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -198,72 +165,10 @@ export default function AssetsPage() {
       </div>
 
       <section className="mb-8 rounded-2xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-bold">Nuovo item</h2>
-
-        <form onSubmit={handleCreateItem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <input
-            className="rounded-xl border p-3"
-            placeholder="Nome item"
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-          />
-
-          <select
-            className="rounded-xl border p-3"
-            value={newItemCategoryId}
-            onChange={(e) => setNewItemCategoryId(e.target.value)}
-          >
-            <option value="">Seleziona categoria</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-
-          <input
-            className="rounded-xl border p-3"
-            placeholder="Marca, es. Apple"
-            value={newItemBrand}
-            onChange={(e) => setNewItemBrand(e.target.value)}
-          />
-
-          <input
-            className="rounded-xl border p-3"
-            placeholder="Modello, es. MacBook Pro 14 M4 Pro"
-            value={newItemModel}
-            onChange={(e) => setNewItemModel(e.target.value)}
-          />
-
-          <textarea
-            className="rounded-xl border p-3 md:col-span-3"
-            placeholder="Specifiche tecniche, es. 24GB RAM, 1TB SSD, CPU 12-core..."
-            value={newItemTechnicalSpecs}
-            onChange={(e) => setNewItemTechnicalSpecs(e.target.value)}
-            rows={3}
-          />
-
-          <label className="flex items-center gap-2 rounded-xl border p-3 md:col-span-1">
-            <input
-              type="checkbox"
-              checked={newItemSerialized}
-              onChange={(e) => setNewItemSerialized(e.target.checked)}
-            />
-            Serializzato
-          </label>
-
-          <button
-            type="submit"
-            disabled={creatingItem || !newItemName || !newItemCategoryId}
-            className="rounded-xl bg-gray-900 p-3 font-semibold text-white hover:bg-black disabled:opacity-50"
-          >
-            {creatingItem ? "Creo..." : "Crea item"}
-          </button>
-        </form>
-      </section>
-
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
         <h2 className="mb-4 text-xl font-bold">Nuovo asset</h2>
+        <p className="mb-4 text-sm text-gray-500">
+          Crea un bene fisico partendo da una tipologia già presente nel catalogo item.
+        </p>
 
         <form onSubmit={handleCreateAsset} className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <select
