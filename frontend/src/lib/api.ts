@@ -19,6 +19,7 @@ export type Item = {
   model: string | null;
   technical_specs: string | null;
   is_serialized: boolean;
+  asset_count: number | null;
 };
 
 export type Location = {
@@ -77,6 +78,18 @@ export async function getAssetDetail(inventoryCode: string): Promise<AssetDetail
 export async function getItems(): Promise<Item[]> {
   const res = await fetch(`${API_BASE}/items`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero degli item");
+  return res.json();
+}
+
+export async function getItem(itemId: number): Promise<Item> {
+  const res = await fetch(`${API_BASE}/items/${itemId}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
   return res.json();
 }
 
@@ -218,6 +231,38 @@ export async function createItem(input: {
 }): Promise<Item> {
   const res = await fetch(`${API_BASE}/items`, {
     method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: input.name,
+      category_id: input.categoryId,
+      brand: input.brand || null,
+      model: input.model || null,
+      technical_specs: input.technicalSpecs || null,
+      is_serialized: input.isSerialized,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function updateItem(input: {
+  itemId: number;
+  name: string;
+  categoryId: number;
+  brand?: string;
+  model?: string;
+  technicalSpecs?: string;
+  isSerialized: boolean;
+}): Promise<Item> {
+  const res = await fetch(`${API_BASE}/items/${input.itemId}`, {
+    method: "PUT",
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",

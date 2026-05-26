@@ -52,7 +52,7 @@ def generate_inventory_code(db: Session, location_code: str) -> str:
 
 
 # --- HELPER FOR ITEM SERIALIZATION ---
-def serialize_item(item: Item):
+def serialize_item(item: Item, asset_count: int | None = None):
     category = item.category
 
     return {
@@ -67,6 +67,7 @@ def serialize_item(item: Item):
         "model": item.model,
         "technical_specs": item.technical_specs,
         "is_serialized": item.is_serialized,
+        "asset_count": asset_count,
     }
 
 @app.get("/health")
@@ -116,18 +117,81 @@ def create_item(
     db.commit()
     db.refresh(item)
     item.category = category
-    serialized = serialize_item(item)
+    serialized = serialize_item(item, asset_count=0)
     db.close()
     return serialized
+
 
 
 @app.get("/items")
 def list_items():
     db = SessionLocal()
     items = db.query(Item).all()
-    rows = [serialize_item(item) for item in items]
+    rows = []
+
+    for item in items:
+        asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
+        rows.append(serialize_item(item, asset_count=asset_count))
     db.close()
     return rows
+
+
+# --- GET/UPDATE ITEM ENDPOINTS ---
+
+@app.get("/items/{item_id}")
+def get_item(item_id: int):
+    db = SessionLocal()
+    item = db.execute(select(Item).where(Item.id == item_id)).scalar_one_or_none()
+
+    if not item:
+        db.close()
+        raise HTTPException(status_code=404, detail=f"Item non trovato: {item_id}")
+
+    asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
+    serialized = serialize_item(item, asset_count=asset_count)
+    db.close()
+    return serialized
+
+
+@app.put("/items/{item_id}")
+def update_item(
+    item_id: int,
+    name: str = Body(...),
+    category_id: int = Body(...),
+    brand: str | None = Body(None),
+    model: str | None = Body(None),
+    technical_specs: str | None = Body(None),
+    is_serialized: bool = Body(True),
+):
+    db = SessionLocal()
+
+    try:
+        item = db.execute(select(Item).where(Item.id == item_id)).scalar_one_or_none()
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Item non trovato: {item_id}")
+
+        category = db.execute(select(Category).where(Category.id == category_id)).scalar_one_or_none()
+        if not category:
+            raise HTTPException(status_code=404, detail=f"Categoria non trovata: {category_id}")
+
+        item.name = name
+        item.category_id = category.id
+        item.brand = brand
+        item.model = model
+        item.technical_specs = technical_specs
+        item.is_serialized = is_serialized
+
+        db.commit()
+        db.refresh(item)
+        item.category = category
+        asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
+        serialized = serialize_item(item, asset_count=asset_count)
+        return serialized
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
 @app.post("/assets")
@@ -301,7 +365,10 @@ def get_asset_detail_by_code(inventory_code: str):
         select(Location).where(Location.id == asset.current_location_id)
     ).scalar_one_or_none()
 
-    serialized_item = None if not item else serialize_item(item)
+    serialized_item = None if not item else serialize_item(
+        item,
+        asset_count=db.query(Asset).filter(Asset.item_id == item.id).count(),
+    )
 
     result = {
         "asset": asset,
