@@ -376,6 +376,7 @@ def unassign_asset(asset_id: int):
 
 # --- MARK ASSET MISSING ENDPOINT ---
 
+
 @app.post("/assets/{asset_id}/missing")
 def mark_asset_missing(
     asset_id: int,
@@ -393,6 +394,37 @@ def mark_asset_missing(
 
         if notes:
             asset.notes = notes
+
+        db.commit()
+        db.refresh(asset)
+
+        return asset
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+# --- RESTORE ASSET ENDPOINT ---
+
+@app.post("/assets/{asset_id}/restore")
+def restore_asset(asset_id: int):
+    db = SessionLocal()
+
+    try:
+        asset = db.query(Asset).filter(Asset.id == asset_id).first()
+
+        if not asset:
+            raise HTTPException(status_code=404, detail="Asset non trovato")
+
+        if asset.status != "MANCANTE":
+            raise HTTPException(
+                status_code=400,
+                detail="Solo un asset mancante può essere ripristinato.",
+            )
+
+        asset.status = "IN_SEDE"
 
         db.commit()
         db.refresh(asset)

@@ -6,6 +6,7 @@ import {
   getAssetDetail,
   getAssetHistory,
   markAssetMissing,
+  restoreAsset,
   transferAsset,
   unassignAsset,
   type AssetDetail,
@@ -43,6 +44,7 @@ export default function AssetDetailPage({ params }: Props) {
   const [loading, setLoading] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
   const [missingLoading, setMissingLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -168,6 +170,30 @@ export default function AssetDetailPage({ params }: Props) {
     }
   }
 
+  async function handleRestoreAsset() {
+    if (!asset) return;
+
+    const confirmed = window.confirm(
+      `Vuoi ripristinare l'asset ${asset.inventory_code} e riportarlo IN_SEDE?`
+    );
+
+    if (!confirmed) return;
+
+    setRestoreLoading(true);
+
+    try {
+      const updatedAsset = await restoreAsset(asset.id);
+
+      await refreshAssetDetail(updatedAsset.inventory_code);
+      alert("Asset ripristinato correttamente");
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante il ripristino dell'asset.");
+    } finally {
+      setRestoreLoading(false);
+    }
+  }
+
   function locationName(id: number | null) {
     if (id === null) return "Sede iniziale non registrata";
 
@@ -211,13 +237,23 @@ export default function AssetDetailPage({ params }: Props) {
               className="h-32 w-32"
             />
 
-            <button
-              onClick={handleMarkMissing}
-              disabled={missingLoading || asset.status === "MANCANTE"}
-              className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {missingLoading ? "Aggiorno..." : "Segna come mancante"}
-            </button>
+            {asset.status === "MANCANTE" ? (
+              <button
+                onClick={handleRestoreAsset}
+                disabled={restoreLoading}
+                className="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {restoreLoading ? "Ripristino..." : "Ripristina asset"}
+              </button>
+            ) : (
+              <button
+                onClick={handleMarkMissing}
+                disabled={missingLoading}
+                className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {missingLoading ? "Aggiorno..." : "Segna come mancante"}
+              </button>
+            )}
           </div>
         </div>
 

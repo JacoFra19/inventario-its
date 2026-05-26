@@ -388,6 +388,7 @@ export async function unassignAsset(assetId: number) {
   return res.json();
 }
 
+
 export async function markAssetMissing(input: {
   assetId: number;
   notes?: string;
@@ -399,6 +400,19 @@ export async function markAssetMissing(input: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(input.notes ?? null),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function restoreAsset(assetId: number): Promise<Asset> {
+  const res = await fetch(`${API_BASE}/assets/${assetId}/restore`, {
+    method: "POST",
+    cache: "no-store",
   });
 
   if (!res.ok) {
