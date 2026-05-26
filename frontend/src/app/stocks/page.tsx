@@ -45,6 +45,11 @@ export default function StocksPage() {
   const [newStockNotes, setNewStockNotes] = useState("");
   const [creatingStock, setCreatingStock] = useState(false);
 
+  const [search, setSearch] = useState("");
+  const [locationFilter, setLocationFilter] = useState("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [lowStockOnly, setLowStockOnly] = useState(false);
+
   async function loadData() {
     const [stocksData, itemsData, locationsData] = await Promise.all([
       getStocks(),
@@ -106,9 +111,23 @@ export default function StocksPage() {
     (stock) => stock.quantity <= stock.min_threshold
   ).length;
 
+  const uniqueCategories = useMemo(() => {
+    const categoryNames = items
+      .map((item) => item.category?.name)
+      .filter((name): name is string => Boolean(name));
+
+    return Array.from(new Set(categoryNames)).sort();
+  }, [items]);
+
   function itemLabel(itemId: number) {
     const item = items.find((i) => i.id === itemId);
-    return item ? `${item.name} (${item.category})` : `Item ID ${itemId}`;
+    if (!item) return `Item ID ${itemId}`;
+
+    const category = item.category?.name ?? "Categoria non impostata";
+    const brand = item.brand ? ` - ${item.brand}` : "";
+    const model = item.model ? ` ${item.model}` : "";
+
+    return `${item.name}${brand}${model} (${category})`;
   }
 
   function locationLabel(locationId: number) {
@@ -119,6 +138,43 @@ export default function StocksPage() {
   function stockLabel(stock: StockCard) {
     return `${itemLabel(stock.item_id)} — ${locationLabel(stock.location_id)}`;
   }
+
+  function stockItem(stock: StockCard) {
+    return items.find((item) => item.id === stock.item_id);
+  }
+
+  const filteredStocks = useMemo(() => {
+    return stocks.filter((stock) => {
+      const item = stockItem(stock);
+      const location = locations.find((l) => l.id === stock.location_id);
+
+      const matchesLocation =
+        locationFilter === "ALL" || stock.location_id === Number(locationFilter);
+
+      const matchesCategory =
+        categoryFilter === "ALL" || item?.category?.name === categoryFilter;
+
+      const matchesLowStock =
+        !lowStockOnly || stock.quantity <= stock.min_threshold;
+
+      const text = [
+        item?.name ?? "",
+        item?.category?.name ?? "",
+        item?.brand ?? "",
+        item?.model ?? "",
+        item?.technical_specs ?? "",
+        location?.code ?? "",
+        location?.name ?? "",
+        stock.notes ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = text.includes(search.toLowerCase());
+
+      return matchesLocation && matchesCategory && matchesLowStock && matchesSearch;
+    });
+  }, [stocks, items, locations, locationFilter, categoryFilter, lowStockOnly, search]);
 
   async function refreshSelectedStock(stockId: number) {
     await loadData();
@@ -226,25 +282,110 @@ export default function StocksPage() {
       </div>
 
       <section className="mb-8 rounded-2xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-bold">Seleziona stockcard</h2>
+        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl font-bold">Filtri stockcard</h2>
+            <p className="text-sm text-gray-500">
+              Cerca e filtra per categoria, sede o stock sotto soglia.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setLocationFilter("ALL");
+              setCategoryFilter("ALL");
+              setLowStockOnly(false);
+            }}
+            className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+          >
+            Pulisci filtri
+          </button>
+        </div>
+
+        <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-600">
+              Ricerca
+            </label>
+            <input
+              className="w-full rounded-xl border p-3"
+              placeholder="Item, marca, modello, sede, note..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-600">
+              Categoria
+            </label>
+            <select
+              className="w-full rounded-xl border p-3"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+            >
+              <option value="ALL">Tutte le categorie</option>
+              {uniqueCategories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-600">
+              Sede
+            </label>
+            <select
+              className="w-full rounded-xl border p-3"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+            >
+              <option value="ALL">Tutte le sedi</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.code} - {location.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <label className="flex items-end gap-2 rounded-xl border p-3 lg:mt-7">
+            <input
+              type="checkbox"
+              checked={lowStockOnly}
+              onChange={(e) => setLowStockOnly(e.target.checked)}
+            />
+            Solo sotto soglia
+          </label>
+        </div>
 
         {loading ? (
           <p className="text-gray-500">Caricamento stock...</p>
         ) : stocks.length === 0 ? (
           <p className="text-gray-500">Nessuna stockcard presente. Creane una dal modulo sotto.</p>
+        ) : filteredStocks.length === 0 ? (
+          <p className="text-gray-500">Nessuna stockcard trovata con i filtri selezionati.</p>
         ) : (
           <select
             className="w-full rounded-xl border p-3"
             value={selectedStockId}
             onChange={(e) => setSelectedStockId(e.target.value)}
           >
-            {stocks.map((stock) => (
+            {filteredStocks.map((stock) => (
               <option key={stock.id} value={stock.id}>
                 {stockLabel(stock)}
               </option>
             ))}
           </select>
         )}
+
+        <p className="mt-3 text-sm text-gray-500">
+          {filteredStocks.length} stockcard trovate su {stocks.length}
+        </p>
       </section>
 
       {selectedStock && (
@@ -369,7 +510,7 @@ export default function StocksPage() {
             <option value="">Item non serializzato</option>
             {nonSerializedItems.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name} ({item.category})
+                {itemLabel(item.id)}
               </option>
             ))}
           </select>
