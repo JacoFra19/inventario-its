@@ -1,14 +1,16 @@
-import { getAssets, getEvent, getEvents, getStocks } from "@/lib/api";
+import { getAssets, getEvent, getEvents, getItems, getStocks } from "@/lib/api";
 
 export default async function Home() {
-  const [assets, stocks, events] = await Promise.all([
+  const [assets, stocks, events, items] = await Promise.all([
     getAssets(),
     getStocks(),
     getEvents(),
+    getItems(),
   ]);
 
   const inSede = assets.filter((asset) => asset.status === "IN_SEDE").length;
   const assegnati = assets.filter((asset) => asset.status === "ASSEGNATO").length;
+  const percentualeInSede = assets.length > 0 ? Math.round((inSede / assets.length) * 100) : 0;
   const stockSottoSoglia = stocks.filter(
     (stock) => stock.quantity <= stock.min_threshold
   ).length;
@@ -23,6 +25,14 @@ export default async function Home() {
 
   const eventiAperti = events.filter(
     (event) => event.status === "OPEN"
+  ).length;
+
+  const eventiChiusi = events.filter(
+    (event) => event.status === "CLOSED"
+  ).length;
+
+  const eventiAnnullati = events.filter(
+    (event) => event.status === "CANCELLED"
   ).length;
 
   const hasAlerts =
@@ -49,6 +59,40 @@ export default async function Home() {
           Dashboard operativa per la gestione di asset, sedi, assegnazioni,
           trasferimenti e QR inventariali.
         </p>
+      </section>
+
+      <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl bg-white p-6 shadow">
+          <p className="text-sm text-gray-500">Item a catalogo</p>
+          <p className="mt-2 text-3xl font-bold">{items.length}</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Tipologie bene disponibili per creare asset e stock.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-6 shadow">
+          <p className="text-sm text-gray-500">Asset fisici</p>
+          <p className="mt-2 text-3xl font-bold">{assets.length}</p>
+          <p className="mt-2 text-sm text-gray-500">
+            {percentualeInSede}% attualmente in sede.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-6 shadow">
+          <p className="text-sm text-gray-500">Eventi totali</p>
+          <p className="mt-2 text-3xl font-bold">{events.length}</p>
+          <p className="mt-2 text-sm text-gray-500">
+            {eventiAperti} aperti, {eventiChiusi} chiusi, {eventiAnnullati} annullati.
+          </p>
+        </div>
+
+        <div className="rounded-2xl bg-white p-6 shadow">
+          <p className="text-sm text-gray-500">Stock monitorati</p>
+          <p className="mt-2 text-3xl font-bold">{stocks.length}</p>
+          <p className="mt-2 text-sm text-gray-500">
+            {stockSottoSoglia} sotto soglia minima.
+          </p>
+        </div>
       </section>
 
       <section className="mb-8 rounded-2xl bg-white p-6 shadow">
@@ -175,6 +219,45 @@ export default async function Home() {
         <div className="rounded-2xl bg-white p-6 shadow">
           <p className="text-sm text-gray-500">Stock sotto soglia</p>
           <p className="mt-2 text-3xl font-bold">{stockSottoSoglia}</p>
+        </div>
+      </section>
+
+      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-wide text-gray-500">
+              Distribuzione asset
+            </p>
+            <h2 className="mt-1 text-2xl font-bold">
+              Stato inventario fisico
+            </h2>
+          </div>
+
+          <a href="/assets" className="text-sm font-semibold text-blue-600 hover:underline">
+            Vai agli asset →
+          </a>
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
+            <p className="text-sm text-gray-500">In sede</p>
+            <p className="mt-1 text-2xl font-bold">{inSede}</p>
+          </a>
+
+          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
+            <p className="text-sm text-gray-500">Assegnati</p>
+            <p className="mt-1 text-2xl font-bold">{assegnati}</p>
+          </a>
+
+          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
+            <p className="text-sm text-gray-500">In evento</p>
+            <p className="mt-1 text-2xl font-bold">{assetInEvento}</p>
+          </a>
+
+          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
+            <p className="text-sm text-gray-500">Mancanti</p>
+            <p className="mt-1 text-2xl font-bold">{assetMancanti}</p>
+          </a>
         </div>
       </section>
 
