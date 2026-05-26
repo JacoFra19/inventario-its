@@ -5,6 +5,7 @@ import {
   assignAsset,
   getAssetDetail,
   getAssetHistory,
+  markAssetMissing,
   transferAsset,
   unassignAsset,
   type AssetDetail,
@@ -41,6 +42,7 @@ export default function AssetDetailPage({ params }: Props) {
   const [assignedTo, setAssignedTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
+  const [missingLoading, setMissingLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -139,6 +141,33 @@ export default function AssetDetailPage({ params }: Props) {
     }
   }
 
+  async function handleMarkMissing() {
+    if (!asset) return;
+
+    const confirmed = window.confirm(
+      `Vuoi segnare l'asset ${asset.inventory_code} come MANCANTE?`
+    );
+
+    if (!confirmed) return;
+
+    setMissingLoading(true);
+
+    try {
+      const updatedAsset = await markAssetMissing({
+        assetId: asset.id,
+        notes: asset.notes ?? undefined,
+      });
+
+      await refreshAssetDetail(updatedAsset.inventory_code);
+      alert("Asset segnato come mancante");
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante l'aggiornamento dello stato mancante.");
+    } finally {
+      setMissingLoading(false);
+    }
+  }
+
   function locationName(id: number | null) {
     if (id === null) return "Sede iniziale non registrata";
 
@@ -175,11 +204,21 @@ export default function AssetDetailPage({ params }: Props) {
             </p>
           </div>
 
-          <img
-            src={`http://localhost:8000/assets/${asset.inventory_code}/qr`}
-            alt="QR Code"
-            className="h-32 w-32"
-          />
+          <div className="flex flex-col items-end gap-4">
+            <img
+              src={`http://localhost:8000/assets/${asset.inventory_code}/qr`}
+              alt="QR Code"
+              className="h-32 w-32"
+            />
+
+            <button
+              onClick={handleMarkMissing}
+              disabled={missingLoading || asset.status === "MANCANTE"}
+              className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {missingLoading ? "Aggiorno..." : "Segna come mancante"}
+            </button>
+          </div>
         </div>
 
         <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
