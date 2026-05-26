@@ -8,7 +8,7 @@ from io import BytesIO
 import qrcode
 
 from .db import engine, SessionLocal
-from .models import Base, Location, LocationCounter, Category, Item, Asset, AssetMovement, StockCard, StockMovement, Event, EventAsset, EventStock
+from .models import Base, Location, LocationCounter, Category, Item, Asset, AssetMovement, AssetLog, StockCard, StockMovement, Event, EventAsset, EventStock
 from .seed import seed_categories, seed_locations
 
 app = FastAPI(title="Inventario ITS", version="0.2.0")
@@ -69,6 +69,23 @@ def serialize_item(item: Item, asset_count: int | None = None):
         "is_serialized": item.is_serialized,
         "asset_count": asset_count,
     }
+
+# --- HELPER FOR ASSET LOGS ---
+def create_asset_log(
+    db: Session,
+    asset_id: int,
+    action_type: str,
+    description: str,
+    created_by: str | None = None,
+):
+    log = AssetLog(
+        asset_id=asset_id,
+        action_type=action_type,
+        description=description,
+        created_by=created_by,
+    )
+    db.add(log)
+    return log
 
 @app.get("/health")
 def health():
@@ -262,6 +279,13 @@ def create_asset(item_id: int, location_code: str, notes: str | None = None):
             notes=notes
         )
         db.add(asset)
+        db.flush()
+        create_asset_log(
+            db,
+            asset.id,
+            "CREATE",
+            f"Asset creato in sede {loc.code} - {loc.name}",
+        )
         db.commit()
         db.refresh(asset)
         return asset
@@ -308,6 +332,14 @@ def transfer_asset(
         asset.current_location_id = to_loc.id
         asset.status = "IN_SEDE"
 
+        create_asset_log(
+            db,
+            asset.id,
+            "TRANSFER",
+            f"Asset trasferito alla sede {to_loc.code} - {to_loc.name}",
+            created_by=moved_by,
+        )
+
         db.commit()
         db.refresh(asset)
         return asset
@@ -337,6 +369,13 @@ def assign_asset(
         if notes:
             asset.notes = notes
 
+        create_asset_log(
+            db,
+            asset.id,
+            "ASSIGN",
+            f"Asset assegnato a {asset.assigned_to}",
+        )
+
         db.commit()
         db.refresh(asset)
 
@@ -360,8 +399,16 @@ def unassign_asset(asset_id: int):
         if not asset:
             raise HTTPException(status_code=404, detail="Asset non trovato")
 
+        previous_assignee = asset.assigned_to
         asset.assigned_to = None
         asset.status = "IN_SEDE"
+
+        create_asset_log(
+            db,
+            asset.id,
+            "UNASSIGN",
+            "Assegnazione rimossa" if not previous_assignee else f"Assegnazione rimossa da {previous_assignee}",
+        )
 
         db.commit()
         db.refresh(asset)
@@ -395,6 +442,13 @@ def mark_asset_missing(
         if notes:
             asset.notes = notes
 
+        create_asset_log(
+            db,
+            asset.id,
+            "MARK_MISSING",
+            "Asset segnato come mancante",
+        )
+
         db.commit()
         db.refresh(asset)
 
@@ -425,6 +479,13 @@ def restore_asset(asset_id: int):
             )
 
         asset.status = "IN_SEDE"
+
+        create_asset_log(
+            db,
+            asset.id,
+            "RESTORE",
+            "Asset ripristinato e riportato in sede",
+        )
 
         db.commit()
         db.refresh(asset)
@@ -513,6 +574,19 @@ def asset_history(asset_id: int):
         db.query(AssetMovement)
         .filter(AssetMovement.asset_id == asset_id)
         .order_by(AssetMovement.moved_at.desc())
+        .all()
+    )
+    db.close()
+    return rows
+
+
+@app.get("/assets/{asset_id}/logs")
+def asset_logs(asset_id: int):
+    db = SessionLocal()
+    rows = (
+        db.query(AssetLog)
+        .filter(AssetLog.asset_id == asset_id)
+        .order_by(AssetLog.created_at.desc())
         .all()
     )
     db.close()
@@ -795,6 +869,13 @@ def add_asset_to_event(
 
         asset.status = "IN_EVENTO"
 
+        create_asset_log(
+            db,
+            asset.id,
+            "EVENT_OUT",
+            f"Asset collegato all'evento: {event.name}",
+        )
+
         db.commit()
         db.refresh(event_asset)
         return event_asset
@@ -883,6 +964,13 @@ def return_event_asset(event_id: int, event_asset_id: int):
         event_asset.returned_at = datetime.utcnow()
         asset.status = "IN_SEDE"
 
+        create_asset_log(
+            db,
+            asset.id,
+            "EVENT_RETURN",
+            "Asset rientrato da evento",
+        )
+
         db.commit()
         db.refresh(event_asset)
         return event_asset
@@ -915,6 +1003,13 @@ def mark_event_asset_missing(event_id: int, event_asset_id: int):
         event_asset.status = "MISSING"
         event_asset.returned_at = None
         asset.status = "MANCANTE"
+
+        create_asset_log(
+            db,
+            asset.id,
+            "EVENT_MISSING",
+            "Asset segnato mancante durante un evento",
+        )
 
         db.commit()
         db.refresh(event_asset)

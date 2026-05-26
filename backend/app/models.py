@@ -65,6 +65,7 @@ class Asset(Base):
     item = relationship("Item")
     current_location = relationship("Location")
 
+
 class AssetMovement(Base):
     __tablename__ = "asset_movements"
 
@@ -83,6 +84,22 @@ class AssetMovement(Base):
     asset = relationship("Asset")
     from_location = relationship("Location", foreign_keys=[from_location_id])
     to_location = relationship("Location", foreign_keys=[to_location_id])
+
+
+# AssetLog model
+class AssetLog(Base):
+    __tablename__ = "asset_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    asset_id = Column(Integer, ForeignKey("assets.id"), nullable=False, index=True)
+    action_type = Column(String(50), nullable=False)
+    description = Column(String(500), nullable=False)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_by = Column(String(255), nullable=True)
+
+    asset = relationship("Asset")
 
 class StockCard(Base):
     __tablename__ = "stock_cards"

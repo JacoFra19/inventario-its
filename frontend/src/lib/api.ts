@@ -322,6 +322,7 @@ export async function transferAsset(input: {
   return res.json();
 }
 
+
 export type AssetTransferMovement = {
   id: number;
   asset_id: number;
@@ -332,8 +333,30 @@ export type AssetTransferMovement = {
   notes: string | null;
 };
 
+export type AssetLog = {
+  id: number;
+  asset_id: number;
+  action_type: string;
+  description: string;
+  created_at: string;
+  created_by: string | null;
+};
+
+
 export async function getAssetHistory(assetId: number): Promise<AssetTransferMovement[]> {
   const res = await fetch(`${API_BASE}/assets/${assetId}/history`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function getAssetLogs(assetId: number): Promise<AssetLog[]> {
+  const res = await fetch(`${API_BASE}/assets/${assetId}/logs`, {
     cache: "no-store",
   });
 
