@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Category,
   Item,
+  deleteItem,
   getCategories,
   getItems,
   updateItem,
@@ -18,6 +19,7 @@ export default function ItemsPage() {
 
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
 
   const [editName, setEditName] = useState("");
   const [editCategoryId, setEditCategoryId] = useState("");
@@ -96,6 +98,33 @@ export default function ItemsPage() {
       cancelEdit();
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete(item: Item) {
+    const assetCount = item.asset_count ?? 0;
+
+    if (assetCount > 0) {
+      alert("Non puoi eliminare questo item perché ha asset collegati.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Vuoi eliminare definitivamente l'item "${item.name}"?`
+    );
+
+    if (!confirmed) return;
+
+    setDeletingItemId(item.id);
+
+    try {
+      await deleteItem(item.id);
+      await loadData();
+    } catch (error) {
+      console.error(error);
+      alert("Errore durante l'eliminazione dell'item.");
+    } finally {
+      setDeletingItemId(null);
     }
   }
 
@@ -289,12 +318,22 @@ export default function ItemsPage() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => startEdit(item)}
-                            className="rounded-xl border px-4 py-2 font-semibold hover:bg-gray-50"
-                          >
-                            Modifica
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => startEdit(item)}
+                              className="rounded-xl border px-4 py-2 font-semibold hover:bg-gray-50"
+                            >
+                              Modifica
+                            </button>
+
+                            <button
+                              onClick={() => handleDelete(item)}
+                              disabled={(item.asset_count ?? 0) > 0 || deletingItemId === item.id}
+                              className="rounded-xl border border-red-200 px-4 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              {deletingItemId === item.id ? "Elimino..." : "Elimina"}
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

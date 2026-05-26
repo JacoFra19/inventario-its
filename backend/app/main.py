@@ -153,6 +153,7 @@ def get_item(item_id: int):
     return serialized
 
 
+
 @app.put("/items/{item_id}")
 def update_item(
     item_id: int,
@@ -187,6 +188,48 @@ def update_item(
         asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
         serialized = serialize_item(item, asset_count=asset_count)
         return serialized
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+# --- DELETE ITEM ENDPOINT ---
+
+@app.delete("/items/{item_id}")
+def delete_item(item_id: int):
+    db = SessionLocal()
+
+    try:
+        item = db.execute(select(Item).where(Item.id == item_id)).scalar_one_or_none()
+        if not item:
+            raise HTTPException(status_code=404, detail=f"Item non trovato: {item_id}")
+
+        asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
+        if asset_count > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Impossibile eliminare item: esistono asset collegati. "
+                    f"Asset collegati: {asset_count}."
+                ),
+            )
+
+        stock_count = db.query(StockCard).filter(StockCard.item_id == item.id).count()
+        if stock_count > 0:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Impossibile eliminare item: esistono schede stock collegate. "
+                    f"Stockcard collegate: {stock_count}."
+                ),
+            )
+
+        db.delete(item)
+        db.commit()
+
+        return {"deleted": True, "item_id": item_id}
     except Exception:
         db.rollback()
         raise

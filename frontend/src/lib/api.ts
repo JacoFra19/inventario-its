@@ -252,6 +252,19 @@ export async function createItem(input: {
   return res.json();
 }
 
+export async function deleteItem(itemId: number): Promise<{ deleted: boolean; item_id: number }> {
+  const res = await fetch(`${API_BASE}/items/${itemId}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
 export async function updateItem(input: {
   itemId: number;
   name: string;
