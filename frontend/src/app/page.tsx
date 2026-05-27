@@ -1,4 +1,5 @@
 import { getAssets, getEvent, getEvents, getItems, getStocks } from "@/lib/api";
+import StatusBadge from "@/components/StatusBadge";
 
 export default async function Home() {
   const [assets, stocks, events, items] = await Promise.all([
@@ -47,8 +48,8 @@ export default async function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <section className="mb-8 rounded-3xl bg-gray-900 p-8 text-white shadow">
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <section className="mb-8 overflow-hidden rounded-3xl bg-gray-900 p-6 text-white shadow ring-1 ring-gray-800 md:p-8">
         <p className="text-sm uppercase tracking-[0.3em] text-gray-300">
           Web App Inventario
         </p>
@@ -62,7 +63,7 @@ export default async function Home() {
       </section>
 
       <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl bg-white p-6 shadow">
+        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Item a catalogo</p>
           <p className="mt-2 text-3xl font-bold">{items.length}</p>
           <p className="mt-2 text-sm text-gray-500">
@@ -70,7 +71,7 @@ export default async function Home() {
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow">
+        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Asset fisici</p>
           <p className="mt-2 text-3xl font-bold">{assets.length}</p>
           <p className="mt-2 text-sm text-gray-500">
@@ -78,7 +79,7 @@ export default async function Home() {
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow">
+        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Eventi totali</p>
           <p className="mt-2 text-3xl font-bold">{events.length}</p>
           <p className="mt-2 text-sm text-gray-500">
@@ -86,7 +87,7 @@ export default async function Home() {
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow">
+        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Stock monitorati</p>
           <p className="mt-2 text-3xl font-bold">{stocks.length}</p>
           <p className="mt-2 text-sm text-gray-500">
@@ -95,7 +96,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm uppercase tracking-wide text-gray-500">
@@ -106,7 +107,10 @@ export default async function Home() {
             </h2>
           </div>
 
-          <a href="/events" className="text-sm font-semibold text-blue-600 hover:underline">
+          <a
+            href="/events"
+            className="inline-flex rounded-xl bg-gray-50 px-4 py-2 text-sm font-semibold text-blue-700 ring-1 ring-gray-100 transition hover:bg-blue-50"
+          >
             Vai agli eventi →
           </a>
         </div>
@@ -140,7 +144,7 @@ export default async function Home() {
                 <a
                   key={detail.event.id}
                   href={`/events?eventId=${detail.event.id}`}
-                  className="rounded-2xl border p-5 transition hover:bg-gray-50"
+                  className="group rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
                 >
                   <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
@@ -154,12 +158,12 @@ export default async function Home() {
                     </div>
 
                     <span
-                      className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                      className={`rounded-full border px-3 py-1 text-sm font-semibold ${
                         detail.event.status === "OPEN"
-                          ? "bg-blue-100 text-blue-700"
+                          ? "border-blue-200 bg-blue-100 text-blue-700"
                           : detail.event.status === "CLOSED"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-gray-200 text-gray-700"
+                            ? "border-emerald-200 bg-emerald-100 text-emerald-700"
+                            : "border-gray-200 bg-gray-100 text-gray-700"
                       }`}
                     >
                       {detail.event.status}
@@ -167,17 +171,17 @@ export default async function Home() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                    <div className="rounded-xl bg-gray-50 p-3">
+                    <div className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100">
                       <p className="text-xs text-gray-500">Asset fuori</p>
                       <p className="mt-1 text-xl font-bold">{openAssets}</p>
                     </div>
 
-                    <div className="rounded-xl bg-gray-50 p-3">
+                    <div className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100">
                       <p className="text-xs text-gray-500">Stock da rientrare</p>
                       <p className="mt-1 text-xl font-bold">{stockToReturn}</p>
                     </div>
 
-                    <div className="rounded-xl bg-gray-50 p-3">
+                    <div className="rounded-2xl bg-gray-50 p-3 ring-1 ring-gray-100">
                       <p className="text-xs text-gray-500">Mancanti</p>
                       <p className="mt-1 text-xl font-bold">{missingAssets}</p>
                     </div>
@@ -195,34 +199,7 @@ export default async function Home() {
         )}
       </section>
 
-      <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-5">
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-sm text-gray-500">Asset totali</p>
-          <p className="mt-2 text-3xl font-bold">{assets.length}</p>
-        </div>
-
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-sm text-gray-500">In sede</p>
-          <p className="mt-2 text-3xl font-bold">{inSede}</p>
-        </div>
-
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-sm text-gray-500">Assegnati</p>
-          <p className="mt-2 text-3xl font-bold">{assegnati}</p>
-        </div>
-
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-sm text-gray-500">Stockcard</p>
-          <p className="mt-2 text-3xl font-bold">{stocks.length}</p>
-        </div>
-
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-sm text-gray-500">Stock sotto soglia</p>
-          <p className="mt-2 text-3xl font-bold">{stockSottoSoglia}</p>
-        </div>
-      </section>
-
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm uppercase tracking-wide text-gray-500">
@@ -233,35 +210,50 @@ export default async function Home() {
             </h2>
           </div>
 
-          <a href="/assets" className="text-sm font-semibold text-blue-600 hover:underline">
+          <a
+            href="/assets"
+            className="inline-flex rounded-xl bg-gray-50 px-4 py-2 text-sm font-semibold text-blue-700 ring-1 ring-gray-100 transition hover:bg-blue-50"
+          >
             Vai agli asset →
           </a>
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
-            <p className="text-sm text-gray-500">In sede</p>
-            <p className="mt-1 text-2xl font-bold">{inSede}</p>
+          <a href="/assets?status=IN_SEDE" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">In sede</p>
+              <StatusBadge status="IN_SEDE" />
+            </div>
+            <p className="mt-3 text-2xl font-bold">{inSede}</p>
           </a>
 
-          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
-            <p className="text-sm text-gray-500">Assegnati</p>
-            <p className="mt-1 text-2xl font-bold">{assegnati}</p>
+          <a href="/assets?status=ASSEGNATO" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">Assegnati</p>
+              <StatusBadge status="ASSEGNATO" />
+            </div>
+            <p className="mt-3 text-2xl font-bold">{assegnati}</p>
           </a>
 
-          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
-            <p className="text-sm text-gray-500">In evento</p>
-            <p className="mt-1 text-2xl font-bold">{assetInEvento}</p>
+          <a href="/assets?status=IN_EVENTO" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-50 hover:shadow-md">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">In evento</p>
+              <StatusBadge status="IN_EVENTO" />
+            </div>
+            <p className="mt-3 text-2xl font-bold">{assetInEvento}</p>
           </a>
 
-          <a href="/assets" className="rounded-xl border p-4 transition hover:bg-gray-50">
-            <p className="text-sm text-gray-500">Mancanti</p>
-            <p className="mt-1 text-2xl font-bold">{assetMancanti}</p>
+          <a href="/assets?status=MANCANTE" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">Mancanti</p>
+              <StatusBadge status="MANCANTE" />
+            </div>
+            <p className="mt-3 text-2xl font-bold">{assetMancanti}</p>
           </a>
         </div>
       </section>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm uppercase tracking-wide text-gray-500">
@@ -273,10 +265,10 @@ export default async function Home() {
           </div>
 
           <span
-            className={`rounded-full px-4 py-2 text-sm font-semibold ${
+            className={`rounded-full border px-4 py-2 text-sm font-semibold ${
               hasAlerts
-                ? "bg-red-100 text-red-700"
-                : "bg-emerald-100 text-emerald-700"
+                ? "border-red-200 bg-red-100 text-red-700"
+                : "border-emerald-200 bg-emerald-100 text-emerald-700"
             }`}
           >
             {hasAlerts ? "Richiede attenzione" : "Tutto regolare"}
@@ -286,7 +278,7 @@ export default async function Home() {
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
           <a
             href="/stocks?lowStock=1"
-            className="rounded-xl border p-4 transition hover:bg-gray-50"
+            className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Stock sotto soglia</p>
             <p className="mt-1 text-2xl font-bold">{stockSottoSoglia}</p>
@@ -294,7 +286,7 @@ export default async function Home() {
 
           <a
             href="/events?status=OPEN"
-            className="rounded-xl border p-4 transition hover:bg-gray-50"
+            className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Eventi aperti</p>
             <p className="mt-1 text-2xl font-bold">{eventiAperti}</p>
@@ -302,7 +294,7 @@ export default async function Home() {
 
           <a
             href="/assets?status=IN_EVENTO"
-            className="rounded-xl border p-4 transition hover:bg-gray-50"
+            className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Asset in evento</p>
             <p className="mt-1 text-2xl font-bold">{assetInEvento}</p>
@@ -310,7 +302,7 @@ export default async function Home() {
 
           <a
             href="/assets?status=MANCANTE"
-            className="rounded-xl border p-4 transition hover:bg-gray-50"
+            className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Asset mancanti</p>
             <p className="mt-1 text-2xl font-bold">{assetMancanti}</p>
@@ -321,7 +313,7 @@ export default async function Home() {
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
         <a
           href="/assets"
-          className="rounded-2xl bg-blue-600 p-6 text-white shadow transition hover:bg-blue-700"
+          className="rounded-3xl bg-blue-600 p-6 text-white shadow ring-1 ring-blue-500/30 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md"
         >
           <p className="text-sm uppercase tracking-wide text-blue-100">
             Asset serializzati
@@ -334,7 +326,7 @@ export default async function Home() {
 
         <a
           href="/items"
-          className="rounded-2xl bg-indigo-600 p-6 text-white shadow transition hover:bg-indigo-700"
+          className="rounded-3xl bg-indigo-600 p-6 text-white shadow ring-1 ring-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md"
         >
           <p className="text-sm uppercase tracking-wide text-indigo-100">
             Catalogo tecnico
@@ -347,7 +339,7 @@ export default async function Home() {
 
         <a
           href="/scan"
-          className="rounded-2xl bg-gray-900 p-6 text-white shadow transition hover:bg-black"
+          className="rounded-3xl bg-gray-900 p-6 text-white shadow ring-1 ring-gray-800 transition hover:-translate-y-0.5 hover:bg-black hover:shadow-md"
         >
           <p className="text-sm uppercase tracking-wide text-gray-300">
             Scanner mobile
@@ -360,7 +352,7 @@ export default async function Home() {
 
         <a
           href="/stocks"
-          className="rounded-2xl bg-emerald-600 p-6 text-white shadow transition hover:bg-emerald-700"
+          className="rounded-3xl bg-emerald-600 p-6 text-white shadow ring-1 ring-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md"
         >
           <p className="text-sm uppercase tracking-wide text-emerald-100">
             Consumabili
@@ -373,7 +365,7 @@ export default async function Home() {
 
         <a
           href="/events"
-          className="rounded-2xl bg-orange-500 p-6 text-white shadow transition hover:bg-orange-600"
+          className="rounded-3xl bg-orange-500 p-6 text-white shadow ring-1 ring-orange-400/30 transition hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
         >
           <p className="text-sm uppercase tracking-wide text-orange-100">
             Logistica
@@ -386,7 +378,7 @@ export default async function Home() {
 
         <a
           href="/labels"
-          className="rounded-2xl bg-white p-6 text-gray-900 shadow transition hover:bg-gray-50"
+          className="rounded-3xl bg-white p-6 text-gray-900 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
         >
           <p className="text-sm uppercase tracking-wide text-gray-500">
             Etichette
@@ -397,7 +389,7 @@ export default async function Home() {
           </p>
         </a>
 
-        <div className="rounded-2xl bg-white p-6 shadow md:col-span-2 xl:col-span-6">
+        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 md:col-span-2 xl:col-span-6">
           <p className="text-sm uppercase tracking-wide text-gray-500">
             Prossimi moduli
           </p>

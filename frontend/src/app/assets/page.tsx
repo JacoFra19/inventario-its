@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import StatusBadge from "@/components/StatusBadge";
 import {
   Asset,
   Item,
@@ -74,15 +75,6 @@ export default function AssetsPage() {
   function locationLabel(id: number) {
     const location = locations.find((l) => l.id === id);
     return location ? `${location.code} - ${location.name}` : id;
-  }
-
-  function statusBadgeClass(status: string) {
-    if (status === "IN_SEDE") return "bg-emerald-100 text-emerald-700";
-    if (status === "ASSEGNATO") return "bg-blue-100 text-blue-700";
-    if (status === "IN_EVENTO") return "bg-orange-100 text-orange-700";
-    if (status === "MANCANTE") return "bg-red-100 text-red-700";
-
-    return "bg-gray-100 text-gray-700";
   }
 
   function itemCategoryLabel(item: Item) {
@@ -167,9 +159,7 @@ export default function AssetsPage() {
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-gray-500">In sede</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("IN_SEDE")}`}>
-              IN_SEDE
-            </span>
+            <StatusBadge status="IN_SEDE" />
           </div>
           <p className="mt-2 text-3xl font-bold">{inSedeCount}</p>
         </button>
@@ -184,9 +174,7 @@ export default function AssetsPage() {
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-gray-500">Assegnati</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("ASSEGNATO")}`}>
-              ASSEGNATO
-            </span>
+            <StatusBadge status="ASSEGNATO" />
           </div>
           <p className="mt-2 text-3xl font-bold">{assegnatiCount}</p>
         </button>
@@ -201,9 +189,7 @@ export default function AssetsPage() {
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-gray-500">In evento</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("IN_EVENTO")}`}>
-              IN_EVENTO
-            </span>
+            <StatusBadge status="IN_EVENTO" />
           </div>
           <p className="mt-2 text-3xl font-bold">{inEventoCount}</p>
         </button>
@@ -218,9 +204,7 @@ export default function AssetsPage() {
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-gray-500">Mancanti</p>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass("MANCANTE")}`}>
-              MANCANTE
-            </span>
+            <StatusBadge status="MANCANTE" />
           </div>
           <p className="mt-2 text-3xl font-bold">{mancantiCount}</p>
         </button>
@@ -361,9 +345,10 @@ export default function AssetsPage() {
         </p>
       </section>
 
-      <section className="overflow-hidden rounded-2xl bg-white shadow">
-        <table className="min-w-full">
-          <thead className="bg-gray-100">
+      <section className="overflow-hidden rounded-2xl bg-white shadow ring-1 ring-gray-100">
+        <div className="max-h-[620px] overflow-auto">
+          <table className="min-w-full text-sm">
+          <thead className="sticky top-0 z-10 bg-gray-100/95 text-xs uppercase tracking-wide text-gray-500 backdrop-blur">
             <tr>
               <th className="p-4 text-left">ID</th>
               <th className="p-4 text-left">Codice</th>
@@ -371,40 +356,46 @@ export default function AssetsPage() {
               <th className="p-4 text-left">Stato</th>
               <th className="p-4 text-left">Assegnato a</th>
               <th className="p-4 text-left">Note</th>
+              <th className="p-4 text-right">Apri</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredAssets.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-gray-500">
+                <td colSpan={7} className="p-6 text-center text-gray-500">
                   Nessun asset trovato con i filtri selezionati.
                 </td>
               </tr>
             )}
-            {filteredAssets.map((asset) => (
-              <tr key={asset.id} className="border-t hover:bg-gray-50">
+            {filteredAssets.map((asset, index) => (
+              <tr
+                key={asset.id}
+                onClick={() => {
+                  window.location.href = `/assets/${asset.inventory_code}`;
+                }}
+                className={`group cursor-pointer border-t transition hover:bg-blue-50/70 ${
+                  index % 2 === 0 ? "bg-white" : "bg-gray-50/40"
+                }`}
+              >
                 <td className="p-4">{asset.id}</td>
-                <td className="p-4 font-mono">
-                  <a
-                    href={`/assets/${asset.inventory_code}`}
-                    className="text-blue-600 hover:underline"
-                  >
-                    {asset.inventory_code}
-                  </a>
+                <td className="p-4 font-mono font-semibold text-blue-700">
+                  {asset.inventory_code}
                 </td>
                 <td className="p-4">{locationLabel(asset.current_location_id)}</td>
                 <td className="p-4">
-                  <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${statusBadgeClass(asset.status)}`}>
-                    {asset.status}
-                  </span>
+                  <StatusBadge status={asset.status} />
                 </td>
                 <td className="p-4">{asset.assigned_to ?? "-"}</td>
                 <td className="p-4">{asset.notes ?? "-"}</td>
+                <td className="p-4 text-right text-gray-400 transition group-hover:translate-x-1 group-hover:text-blue-600">
+                  →
+                </td>
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </section>
     </main>
   );

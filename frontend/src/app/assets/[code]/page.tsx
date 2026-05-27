@@ -15,6 +15,8 @@ import {
   type AssetTransferMovement,
 } from "@/lib/api";
 
+import StatusBadge from "@/components/StatusBadge";
+
 type Asset = {
   id: number;
   inventory_code: string;
@@ -241,29 +243,43 @@ export default function AssetDetailPage({ params }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <a href="/assets" className="text-blue-600 hover:underline">
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <a
+        href="/assets"
+        className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm ring-1 ring-gray-100 transition hover:bg-blue-50"
+      >
         ← Torna alla lista
       </a>
 
-      <div className="mt-6 rounded-2xl bg-white p-6 shadow">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">
-              {asset.inventory_code}
-            </h1>
-            <p className="mt-2 text-gray-500">
+      <div className="mt-6 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-8">
+        <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex-1">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-gray-400">
+                  Asset inventariato
+                </p>
+
+                <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">
+                  {asset.inventory_code}
+                </h1>
+              </div>
+
+              <StatusBadge status={asset.status} />
+            </div>
+
+            <p className="mt-5 max-w-3xl text-gray-500">
               {item
-                ? `${item.name}${item.brand ? ` - ${item.brand}` : ""}${item.model ? ` ${item.model}` : ""}`
+                ? `${item.name}${item.brand ? ` • ${item.brand}` : ""}${item.model ? ` ${item.model}` : ""}`
                 : "Gestione dettaglio asset e QR."}
             </p>
           </div>
 
-          <div className="flex flex-col items-end gap-4">
+          <div className="flex w-full flex-col gap-4 rounded-2xl border border-gray-100 bg-gray-50 p-5 xl:w-[260px]">
             <img
               src={`http://localhost:8000/assets/${asset.inventory_code}/qr`}
               alt="QR Code"
-              className="h-32 w-32"
+              className="mx-auto h-40 w-40 rounded-2xl bg-white p-2 shadow-sm"
             />
 
             {asset.status === "MANCANTE" ? (
@@ -286,7 +302,7 @@ export default function AssetDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border p-4">
             <p className="text-sm text-gray-500">ID</p>
             <p className="mt-1 font-semibold">{asset.id}</p>
@@ -294,7 +310,9 @@ export default function AssetDetailPage({ params }: Props) {
 
           <div className="rounded-xl border p-4">
             <p className="text-sm text-gray-500">Stato</p>
-            <p className="mt-1 font-semibold">{asset.status}</p>
+            <div className="mt-2">
+              <StatusBadge status={asset.status} />
+            </div>
           </div>
 
           <div className="rounded-xl border p-4">
@@ -312,7 +330,7 @@ export default function AssetDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+        <div className="mt-8 rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">Storico operativo</h2>
 
           {logs.length === 0 ? (
@@ -320,7 +338,7 @@ export default function AssetDetailPage({ params }: Props) {
           ) : (
             <div className="space-y-3">
               {logs.map((log) => (
-                <div key={log.id} className="rounded-xl bg-white p-4 shadow-sm">
+                <div key={log.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <p className="font-semibold">{log.description}</p>
                     <span className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${assetLogBadgeClass(log.action_type)}`}>
@@ -343,7 +361,7 @@ export default function AssetDetailPage({ params }: Props) {
           )}
         </div>
 
-        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+        <div className="mt-8 rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">
             Scheda tecnica item
           </h2>
@@ -354,27 +372,27 @@ export default function AssetDetailPage({ params }: Props) {
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-xl bg-white p-4 shadow-sm">
+              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md">
                 <p className="text-sm text-gray-500">Nome oggetto</p>
                 <p className="mt-1 font-semibold">{item.name}</p>
               </div>
 
-              <div className="rounded-xl bg-white p-4 shadow-sm">
+              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md">
                 <p className="text-sm text-gray-500">Categoria</p>
                 <p className="mt-1 font-semibold">{item.category?.name ?? "-"}</p>
               </div>
 
-              <div className="rounded-xl bg-white p-4 shadow-sm">
+              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md">
                 <p className="text-sm text-gray-500">Marca</p>
                 <p className="mt-1 font-semibold">{item.brand ?? "-"}</p>
               </div>
 
-              <div className="rounded-xl bg-white p-4 shadow-sm">
+              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md">
                 <p className="text-sm text-gray-500">Modello</p>
                 <p className="mt-1 font-semibold">{item.model ?? "-"}</p>
               </div>
 
-              <div className="rounded-xl bg-white p-4 shadow-sm md:col-span-2">
+              <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md md:col-span-2">
                 <p className="text-sm text-gray-500">Specifiche tecniche</p>
                 <p className="mt-1 whitespace-pre-wrap font-semibold">
                   {item.technical_specs ?? "-"}
@@ -384,7 +402,7 @@ export default function AssetDetailPage({ params }: Props) {
           )}
         </div>
 
-        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+        <div className="mt-8 rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">
             Trasferisci asset
           </h2>
@@ -414,7 +432,7 @@ export default function AssetDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+        <div className="mt-8 rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">
             Assegnazione a personale
           </h2>
@@ -445,7 +463,7 @@ export default function AssetDetailPage({ params }: Props) {
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border bg-gray-50 p-5">
+        <div className="mt-8 rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">Storico movimenti</h2>
 
           {history.length === 0 ? (
@@ -453,7 +471,7 @@ export default function AssetDetailPage({ params }: Props) {
           ) : (
             <div className="space-y-3">
               {history.map((movement) => (
-                <div key={movement.id} className="rounded-xl bg-white p-4 shadow-sm">
+                <div key={movement.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md">
                   <p className="font-semibold">
                     Da {locationName(movement.from_location_id)} → {locationName(movement.to_location_id)}
                   </p>
