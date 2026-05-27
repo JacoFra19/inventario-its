@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import PageHeader from "@/components/ui/PageHeader";
+import StatCard from "@/components/ui/StatCard";
+import SectionCard from "@/components/ui/SectionCard";
 import {
   Item,
   Location,
@@ -251,72 +254,51 @@ export default function StocksPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
+      <PageHeader
+        backHref="/"
+        backLabel="Dashboard"
+        eyebrow="Magazzino consumabili"
+        title="Stock e consumabili"
+        description="Gestione quantità per gadget, materiale promozionale, cavi e consumabili."
+        actions={
           <a
-            href="/"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm ring-1 ring-gray-100 transition hover:bg-blue-50"
+            href="/assets"
+            className="rounded-xl bg-white px-5 py-3 text-center font-semibold text-gray-900 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
           >
-            ← Dashboard
+            Vai agli Asset
           </a>
-
-          <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-gray-400">
-            Magazzino consumabili
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Stock e consumabili</h1>
-          <p className="mt-2 max-w-2xl text-gray-600">
-            Gestione quantità per gadget, materiale promozionale, cavi e consumabili.
-          </p>
-        </div>
-
-        <a
-          href="/assets"
-          className="rounded-xl bg-white px-5 py-3 text-center font-semibold text-gray-900 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
-        >
-          Vai agli Asset
-        </a>
-      </div>
+        }
+      />
 
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Schede stock</p>
-          <p className="mt-2 text-3xl font-bold">{stocks.length}</p>
-        </div>
+        <StatCard title="Schede stock" value={stocks.length} />
 
-        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Totale pezzi disponibili</p>
-          <p className="mt-2 text-3xl font-bold">
-            {stocks.reduce((total, stock) => total + stock.quantity, 0)}
-          </p>
-        </div>
+        <StatCard
+          title="Totale pezzi disponibili"
+          value={stocks.reduce((total, stock) => total + stock.quantity, 0)}
+        />
 
-        <button
-          type="button"
+        <StatCard
+          title="Sotto soglia"
+          value={lowStockCount}
+          variant="danger"
+          badge={
+            <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+              ALERT
+            </span>
+          }
           onClick={() => {
             setLowStockOnly(true);
             window.history.replaceState(null, "", "/stocks?lowStock=1");
           }}
-          className="rounded-3xl bg-white p-5 text-left shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-gray-500">Sotto soglia</p>
-            <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-              ALERT
-            </span>
-          </div>
-          <p className="mt-2 text-3xl font-bold">{lowStockCount}</p>
-        </button>
+        />
       </div>
 
-      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
-        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-xl font-bold">Filtri stockcard</h2>
-            <p className="text-sm text-gray-500">
-              Cerca e filtra per categoria, sede o stock sotto soglia.
-            </p>
-          </div>
-
+      <SectionCard
+        className="mb-8"
+        title="Filtri stockcard"
+        description="Cerca e filtra per categoria, sede o stock sotto soglia."
+        actions={
           <button
             type="button"
             onClick={() => {
@@ -330,7 +312,8 @@ export default function StocksPage() {
           >
             Pulisci filtri
           </button>
-        </div>
+        }
+      >
 
         <div className="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
           <div>
@@ -421,10 +404,10 @@ export default function StocksPage() {
         <p className="mt-3 text-sm text-gray-500">
           {filteredStocks.length} stockcard trovate su {stocks.length}
         </p>
-      </section>
+      </SectionCard>
 
       {selectedStock && (
-        <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+        <SectionCard className="mb-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-3">
@@ -499,12 +482,11 @@ export default function StocksPage() {
               {movementLoading ? "Salvo..." : "Registra movimento"}
             </button>
           </form>
-        </section>
+        </SectionCard>
       )}
 
       {selectedStock && (
-        <section className="mb-8 rounded-2xl bg-white p-6 shadow">
-          <h2 className="mb-4 text-xl font-bold">Storico movimenti</h2>
+        <SectionCard className="mb-8" title="Storico movimenti">
 
           {historyLoading ? (
             <p className="text-gray-500">Caricamento storico...</p>
@@ -527,14 +509,13 @@ export default function StocksPage() {
               ))}
             </div>
           )}
-        </section>
+        </SectionCard>
       )}
 
-      <section className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
-        <h2 className="mb-2 text-xl font-bold">Crea nuova stockcard</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          La stockcard identifica un item non serializzato in una specifica sede. La quantità iniziale è il carico di partenza, la soglia minima serve per gli avvisi sotto soglia.
-        </p>
+      <SectionCard
+        title="Crea nuova stockcard"
+        description="La stockcard identifica un item non serializzato in una specifica sede. La quantità iniziale è il carico di partenza, la soglia minima serve per gli avvisi sotto soglia."
+      >
 
         <form onSubmit={handleCreateStock} className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           <select
@@ -596,7 +577,7 @@ export default function StocksPage() {
             onChange={(e) => setNewStockNotes(e.target.value)}
           />
         </form>
-      </section>
+      </SectionCard>
     </main>
   );
 }
