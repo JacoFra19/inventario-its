@@ -164,21 +164,24 @@ export default function ItemsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <a href="/" className="text-blue-600 hover:underline">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm ring-1 ring-gray-100 transition hover:bg-blue-50"
+            >
               ← Dashboard
             </a>
 
-            <p className="mt-4 text-sm uppercase tracking-wide text-gray-500">
+            <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-gray-400">
               Catalogo tecnico
             </p>
-            <h1 className="text-4xl font-black text-gray-900">
+            <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">
               Gestione item
             </h1>
-            <p className="mt-2 text-gray-500">
+            <p className="mt-2 max-w-2xl text-gray-600">
               Modifica categorie, specifiche tecniche e informazioni dei beni.
             </p>
           </div>
@@ -186,17 +189,17 @@ export default function ItemsPage() {
           <div className="flex gap-3">
             <a
               href="/assets"
-              className="rounded-xl border px-5 py-3 font-semibold hover:bg-white"
+              className="rounded-xl bg-white px-5 py-3 font-semibold text-gray-900 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
             >
               Vai agli asset
             </a>
           </div>
         </div>
 
-        <section className="mb-6 rounded-2xl bg-white p-6 shadow">
+        <section className="mb-6 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
           <h2 className="mb-4 text-xl font-bold">Nuovo item</h2>
-          <p className="mb-4 text-sm text-gray-500">
-            Crea una nuova tipologia bene da usare poi nella creazione degli asset fisici.
+          <p className="mb-5 max-w-2xl text-sm text-gray-500">
+            Crea una nuova tipologia bene da usare nella gestione degli asset fisici e degli stock.
           </p>
 
           <form onSubmit={handleCreateItem} className="grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -242,7 +245,7 @@ export default function ItemsPage() {
               rows={3}
             />
 
-            <label className="flex items-center gap-2 rounded-xl border p-3 md:col-span-1">
+            <label className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/70 p-3 ring-1 ring-gray-100 md:col-span-1">
               <input
                 type="checkbox"
                 checked={newItemSerialized}
@@ -254,14 +257,14 @@ export default function ItemsPage() {
             <button
               type="submit"
               disabled={creatingItem || !newItemName || !newItemCategoryId}
-              className="rounded-xl bg-gray-900 p-3 font-semibold text-white hover:bg-black disabled:opacity-50 md:col-span-4"
+              className="rounded-xl bg-gray-900 p-3 font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-50 md:col-span-4"
             >
               {creatingItem ? "Creo..." : "Crea item"}
             </button>
           </form>
         </section>
 
-        <section className="mb-6 rounded-2xl bg-white p-6 shadow">
+        <section className="mb-6 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-600">
@@ -277,17 +280,17 @@ export default function ItemsPage() {
             </div>
 
             <div className="flex items-end">
-              <div className="rounded-2xl bg-gray-100 px-5 py-4 text-sm text-gray-700">
+              <div className="rounded-2xl bg-gray-50 px-5 py-4 text-sm text-gray-700 ring-1 ring-gray-100">
                 {filteredItems.length} item nel catalogo
               </div>
             </div>
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl bg-white shadow">
+        <section className="overflow-hidden rounded-3xl bg-white shadow ring-1 ring-gray-100">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-100 text-left text-gray-600">
+              <thead className="sticky top-0 z-10 bg-gray-100/95 text-left text-xs uppercase tracking-wide text-gray-500 backdrop-blur">
                 <tr>
                   <th className="p-4 font-semibold">Nome</th>
                   <th className="p-4 font-semibold">Categoria</th>
@@ -304,7 +307,10 @@ export default function ItemsPage() {
                   const isEditing = editingItemId === item.id;
 
                   return (
-                    <tr key={item.id} className="border-t align-top">
+                    <tr
+                      key={item.id}
+                      className="group border-t align-top transition hover:bg-blue-50/40"
+                    >
                       <td className="p-4">
                         {isEditing ? (
                           <input
@@ -341,7 +347,7 @@ export default function ItemsPage() {
                             ))}
                           </select>
                         ) : (
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                          <span className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                             {item.category?.name ?? "-"}
                           </span>
                         )}
@@ -373,10 +379,10 @@ export default function ItemsPage() {
 
                       <td className="p-4">
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
                             (item.asset_count ?? 0) > 0
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-gray-100 text-gray-600"
+                              ? "border-blue-200 bg-blue-100 text-blue-700"
+                              : "border-gray-200 bg-gray-100 text-gray-600"
                           }`}
                         >
                           {item.asset_count ?? 0}
@@ -396,11 +402,11 @@ export default function ItemsPage() {
                             Serializzato
                           </label>
                         ) : item.is_serialized ? (
-                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
                             SI
                           </span>
                         ) : (
-                          <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+                          <span className="rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
                             NO
                           </span>
                         )}
@@ -411,7 +417,7 @@ export default function ItemsPage() {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={cancelEdit}
-                              className="rounded-xl border px-4 py-2 font-semibold hover:bg-gray-50"
+                              className="rounded-xl bg-white px-4 py-2 font-semibold shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
                             >
                               Annulla
                             </button>
@@ -419,7 +425,7 @@ export default function ItemsPage() {
                             <button
                               onClick={handleSave}
                               disabled={saving}
-                              className="rounded-xl bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-black disabled:opacity-50"
+                              className="rounded-xl bg-gray-900 px-4 py-2 font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-50"
                             >
                               {saving ? "Salvo..." : "Salva"}
                             </button>
@@ -428,7 +434,7 @@ export default function ItemsPage() {
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => startEdit(item)}
-                              className="rounded-xl border px-4 py-2 font-semibold hover:bg-gray-50"
+                              className="rounded-xl bg-white px-4 py-2 font-semibold shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
                             >
                               Modifica
                             </button>
@@ -436,7 +442,7 @@ export default function ItemsPage() {
                             <button
                               onClick={() => handleDelete(item)}
                               disabled={(item.asset_count ?? 0) > 0 || deletingItemId === item.id}
-                              className="rounded-xl border border-red-200 px-4 py-2 font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                              className="rounded-xl border border-red-200 bg-white px-4 py-2 font-semibold text-red-600 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {deletingItemId === item.id ? "Elimino..." : "Elimina"}
                             </button>

@@ -250,47 +250,65 @@ export default function StocksPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <a href="/" className="text-blue-600 hover:underline">
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm ring-1 ring-gray-100 transition hover:bg-blue-50"
+          >
             ← Dashboard
           </a>
 
-          <h1 className="mt-4 text-3xl font-bold">Stock e consumabili</h1>
-          <p className="text-gray-600">
+          <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-gray-400">
+            Magazzino consumabili
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Stock e consumabili</h1>
+          <p className="mt-2 max-w-2xl text-gray-600">
             Gestione quantità per gadget, materiale promozionale, cavi e consumabili.
           </p>
         </div>
 
         <a
           href="/assets"
-          className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"
+          className="rounded-xl bg-white px-5 py-3 text-center font-semibold text-gray-900 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
         >
           Vai agli Asset
         </a>
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-2xl bg-white p-5 shadow">
+        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Schede stock</p>
-          <p className="text-3xl font-bold">{stocks.length}</p>
+          <p className="mt-2 text-3xl font-bold">{stocks.length}</p>
         </div>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
+        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Totale pezzi disponibili</p>
-          <p className="text-3xl font-bold">
+          <p className="mt-2 text-3xl font-bold">
             {stocks.reduce((total, stock) => total + stock.quantity, 0)}
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">Sotto soglia</p>
-          <p className="text-3xl font-bold">{lowStockCount}</p>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setLowStockOnly(true);
+            window.history.replaceState(null, "", "/stocks?lowStock=1");
+          }}
+          className="rounded-3xl bg-white p-5 text-left shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-gray-500">Sotto soglia</p>
+            <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+              ALERT
+            </span>
+          </div>
+          <p className="mt-2 text-3xl font-bold">{lowStockCount}</p>
+        </button>
       </div>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
+      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
         <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-xl font-bold">Filtri stockcard</h2>
@@ -308,7 +326,7 @@ export default function StocksPage() {
               setLowStockOnly(false);
               window.history.replaceState(null, "", "/stocks");
             }}
-            className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
+            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
           >
             Pulisci filtri
           </button>
@@ -363,7 +381,7 @@ export default function StocksPage() {
             </select>
           </div>
 
-          <label className="flex items-end gap-2 rounded-xl border p-3 lg:mt-7">
+          <label className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50/70 p-3 ring-1 ring-gray-100 lg:mt-7">
             <input
               type="checkbox"
               checked={lowStockOnly}
@@ -415,7 +433,7 @@ export default function StocksPage() {
                 </h2>
 
                 {selectedStock.quantity <= selectedStock.min_threshold && (
-                  <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
+                  <span className="rounded-full border border-red-200 bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
                     Sotto soglia
                   </span>
                 )}
@@ -433,12 +451,12 @@ export default function StocksPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="rounded-xl border p-4">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 shadow-sm ring-1 ring-gray-100">
                 <p className="text-sm text-gray-500">Disponibili</p>
                 <p className="text-4xl font-bold">{selectedStock.quantity}</p>
               </div>
 
-              <div className="rounded-xl border p-4">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50/70 p-4 shadow-sm ring-1 ring-gray-100">
                 <p className="text-sm text-gray-500">Soglia minima</p>
                 <p className="text-4xl font-bold">{selectedStock.min_threshold}</p>
               </div>
@@ -476,7 +494,7 @@ export default function StocksPage() {
             <button
               type="submit"
               disabled={movementLoading || !movementQuantity}
-              className="rounded-xl bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-xl bg-blue-600 p-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
             >
               {movementLoading ? "Salvo..." : "Registra movimento"}
             </button>
@@ -495,7 +513,7 @@ export default function StocksPage() {
           ) : (
             <div className="space-y-3">
               {history.map((movement) => (
-                <div key={movement.id} className="rounded-xl bg-gray-50 p-4">
+                <div key={movement.id} className="rounded-2xl bg-gray-50/70 p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md">
                   <p className="font-semibold">
                     {movementLabels[movement.movement_type as MovementType] ?? movement.movement_type} — {movement.quantity} pezzi
                   </p>
@@ -512,7 +530,7 @@ export default function StocksPage() {
         </section>
       )}
 
-      <section className="rounded-2xl bg-white p-6 shadow">
+      <section className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
         <h2 className="mb-2 text-xl font-bold">Crea nuova stockcard</h2>
         <p className="mb-4 text-sm text-gray-500">
           La stockcard identifica un item non serializzato in una specifica sede. La quantità iniziale è il carico di partenza, la soglia minima serve per gli avvisi sotto soglia.
@@ -566,7 +584,7 @@ export default function StocksPage() {
           <button
             type="submit"
             disabled={creatingStock || !newStockItemId || !newStockLocationCode}
-            className="rounded-xl bg-gray-900 p-3 font-semibold text-white hover:bg-black disabled:opacity-50"
+            className="rounded-xl bg-gray-900 p-3 font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-50"
           >
             {creatingStock ? "Creo..." : "Crea stockcard"}
           </button>
