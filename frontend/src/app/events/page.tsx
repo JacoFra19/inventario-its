@@ -26,38 +26,8 @@ import {
   Item,
   Location,
 } from "@/lib/api";
+import StatusBadge from "@/components/StatusBadge";
 
-function eventStatusBadgeClass(status: string) {
-  if (status === "OPEN") return "border-blue-200 bg-blue-100 text-blue-700";
-  if (status === "CLOSED") return "border-emerald-200 bg-emerald-100 text-emerald-700";
-  if (status === "CANCELLED") return "border-gray-200 bg-gray-100 text-gray-700";
-
-  return "border-gray-200 bg-gray-100 text-gray-700";
-}
-
-function EventStatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${eventStatusBadgeClass(status)}`}>
-      {status}
-    </span>
-  );
-}
-
-function eventAssetStatusBadgeClass(status: string) {
-  if (status === "OUT") return "border-orange-200 bg-orange-100 text-orange-700";
-  if (status === "RETURNED") return "border-emerald-200 bg-emerald-100 text-emerald-700";
-  if (status === "MISSING") return "border-red-200 bg-red-100 text-red-700";
-
-  return "border-gray-200 bg-gray-100 text-gray-700";
-}
-
-function EventAssetStatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${eventAssetStatusBadgeClass(status)}`}>
-      {status}
-    </span>
-  );
-}
 
 export default function EventsPage() {
   const searchParams = useSearchParams();
@@ -560,7 +530,7 @@ export default function EventsPage() {
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-2xl font-bold">{selectedEvent.name}</h2>
-                <EventStatusBadge status={selectedEvent.status} />
+                <StatusBadge status={selectedEvent.status} />
               </div>
 
               <p className="mt-2 text-gray-500">
@@ -700,7 +670,7 @@ export default function EventsPage() {
                       <div>
                         <p className="font-semibold">{linkedAssetLabel(eventAsset.asset_id)}</p>
                         <div className="mt-2">
-                          <EventAssetStatusBadge status={eventAsset.status} />
+                          <StatusBadge status={eventAsset.status} size="sm" />
                         </div>
                         {eventAsset.notes && (
                           <p className="mt-2 text-sm">{eventAsset.notes}</p>

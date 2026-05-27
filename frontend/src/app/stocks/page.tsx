@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import SectionCard from "@/components/ui/SectionCard";
+import PrimaryButton from "@/components/ui/PrimaryButton";
+import SecondaryButton from "@/components/ui/SecondaryButton";
 import {
   Item,
   Location,
@@ -261,12 +263,9 @@ export default function StocksPage() {
         title="Stock e consumabili"
         description="Gestione quantità per gadget, materiale promozionale, cavi e consumabili."
         actions={
-          <a
-            href="/assets"
-            className="rounded-xl bg-white px-5 py-3 text-center font-semibold text-gray-900 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
-          >
+          <SecondaryButton href="/assets">
             Vai agli Asset
-          </a>
+          </SecondaryButton>
         }
       />
 
@@ -299,8 +298,7 @@ export default function StocksPage() {
         title="Filtri stockcard"
         description="Cerca e filtra per categoria, sede o stock sotto soglia."
         actions={
-          <button
-            type="button"
+          <SecondaryButton
             onClick={() => {
               setSearch("");
               setLocationFilter("ALL");
@@ -308,10 +306,10 @@ export default function StocksPage() {
               setLowStockOnly(false);
               window.history.replaceState(null, "", "/stocks");
             }}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
+            className="px-4 py-2 text-sm"
           >
             Pulisci filtri
-          </button>
+          </SecondaryButton>
         }
       >
 
@@ -474,13 +472,13 @@ export default function StocksPage() {
               onChange={(e) => setMovementNotes(e.target.value)}
             />
 
-            <button
+            <PrimaryButton
               type="submit"
               disabled={movementLoading || !movementQuantity}
-              className="rounded-xl bg-blue-600 p-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+              className="bg-blue-600 p-3 hover:bg-blue-700"
             >
               {movementLoading ? "Salvo..." : "Registra movimento"}
-            </button>
+            </PrimaryButton>
           </form>
         </SectionCard>
       )}
@@ -562,13 +560,13 @@ export default function StocksPage() {
             onChange={(e) => setNewStockThreshold(e.target.value)}
           />
 
-          <button
+          <PrimaryButton
             type="submit"
             disabled={creatingStock || !newStockItemId || !newStockLocationCode}
-            className="rounded-xl bg-gray-900 p-3 font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-50"
+            className="p-3"
           >
             {creatingStock ? "Creo..." : "Crea stockcard"}
-          </button>
+          </PrimaryButton>
 
           <input
             className="rounded-xl border p-3 lg:col-span-5"

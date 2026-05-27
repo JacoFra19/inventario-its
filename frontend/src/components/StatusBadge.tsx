@@ -1,35 +1,131 @@
+type StatusBadgeVariant =
+  | "success"
+  | "info"
+  | "warning"
+  | "danger"
+  | "neutral";
 
-
-type StatusBadgeProps = {
+interface StatusBadgeProps {
   status: string;
-};
-
-function badgeClass(status: string) {
-  if (status === "IN_SEDE") {
-    return "bg-emerald-100 text-emerald-700 border border-emerald-200";
-  }
-
-  if (status === "ASSEGNATO") {
-    return "bg-blue-100 text-blue-700 border border-blue-200";
-  }
-
-  if (status === "IN_EVENTO") {
-    return "bg-orange-100 text-orange-700 border border-orange-200";
-  }
-
-  if (status === "MANCANTE") {
-    return "bg-red-100 text-red-700 border border-red-200";
-  }
-
-  return "bg-gray-100 text-gray-700 border border-gray-200";
+  label?: string;
+  size?: "sm" | "md";
 }
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+function normalizeStatus(status: string) {
+  return status.trim().toUpperCase();
+}
+
+function badgeVariant(status: string): StatusBadgeVariant {
+  const normalized = normalizeStatus(status);
+
+  if (
+    [
+      "IN_SEDE",
+      "RETURNED",
+      "RIENTRATO",
+      "CLOSED",
+      "CHIUSO",
+      "DISPONIBILE",
+      "ATTIVO",
+      "SI",
+      "TRUE",
+    ].includes(normalized)
+  ) {
+    return "success";
+  }
+
+  if (
+    [
+      "ASSEGNATO",
+      "OPEN",
+      "APERTO",
+      "INFO",
+    ].includes(normalized)
+  ) {
+    return "info";
+  }
+
+  if (
+    [
+      "IN_EVENTO",
+      "OUT",
+      "WARNING",
+      "LOW",
+      "SOTTO_SOGLIA",
+    ].includes(normalized)
+  ) {
+    return "warning";
+  }
+
+  if (
+    [
+      "MANCANTE",
+      "MISSING",
+      "ERROR",
+      "NO",
+      "FALSE",
+      "ANNULLATO",
+      "CANCELLED",
+    ].includes(normalized)
+  ) {
+    return "danger";
+  }
+
+  return "neutral";
+}
+
+function variantClass(variant: StatusBadgeVariant) {
+  if (variant === "success") {
+    return "border-emerald-200 bg-emerald-100 text-emerald-700";
+  }
+
+  if (variant === "info") {
+    return "border-blue-200 bg-blue-100 text-blue-700";
+  }
+
+  if (variant === "warning") {
+    return "border-orange-200 bg-orange-100 text-orange-700";
+  }
+
+  if (variant === "danger") {
+    return "border-red-200 bg-red-100 text-red-700";
+  }
+
+  return "border-gray-200 bg-gray-100 text-gray-700";
+}
+
+function normalizedLabel(status: string) {
+  const normalized = normalizeStatus(status);
+
+  const labels: Record<string, string> = {
+    OPEN: "Aperto",
+    CLOSED: "Chiuso",
+    CANCELLED: "Annullato",
+    RETURNED: "Rientrato",
+    MISSING: "Mancante",
+    OUT: "In uscita",
+    LOW: "Sotto soglia",
+    TRUE: "Sì",
+    FALSE: "No",
+  };
+
+  return labels[normalized] ?? status;
+}
+
+export default function StatusBadge({
+  status,
+  label,
+  size = "md",
+}: StatusBadgeProps) {
+  const variant = badgeVariant(status);
+
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ${badgeClass(status)}`}
+      className={`inline-flex rounded-full border font-semibold ${
+        size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1 text-sm"
+      } ${variantClass(variant)}`}
     >
-      {status}
+      {label ?? normalizedLabel(status)}
     </span>
   );
 }
