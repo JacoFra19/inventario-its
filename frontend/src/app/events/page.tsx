@@ -27,6 +27,38 @@ import {
   Location,
 } from "@/lib/api";
 
+function eventStatusBadgeClass(status: string) {
+  if (status === "OPEN") return "border-blue-200 bg-blue-100 text-blue-700";
+  if (status === "CLOSED") return "border-emerald-200 bg-emerald-100 text-emerald-700";
+  if (status === "CANCELLED") return "border-gray-200 bg-gray-100 text-gray-700";
+
+  return "border-gray-200 bg-gray-100 text-gray-700";
+}
+
+function EventStatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${eventStatusBadgeClass(status)}`}>
+      {status}
+    </span>
+  );
+}
+
+function eventAssetStatusBadgeClass(status: string) {
+  if (status === "OUT") return "border-orange-200 bg-orange-100 text-orange-700";
+  if (status === "RETURNED") return "border-emerald-200 bg-emerald-100 text-emerald-700";
+  if (status === "MISSING") return "border-red-200 bg-red-100 text-red-700";
+
+  return "border-gray-200 bg-gray-100 text-gray-700";
+}
+
+function EventAssetStatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${eventAssetStatusBadgeClass(status)}`}>
+      {status}
+    </span>
+  );
+}
+
 export default function EventsPage() {
   const searchParams = useSearchParams();
   const eventIdFromUrl = searchParams.get("eventId");
@@ -382,15 +414,21 @@ export default function EventsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8 print:bg-white print:p-0">
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between print:hidden">
         <div>
-          <a href="/" className="text-blue-600 hover:underline">
+          <a
+            href="/"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm ring-1 ring-gray-100 transition hover:bg-blue-50"
+          >
             ← Dashboard
           </a>
 
-          <h1 className="mt-4 text-3xl font-bold">Eventi e fiere</h1>
-          <p className="text-gray-600">
+          <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-gray-400">
+            Logistica eventi
+          </p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Eventi e fiere</h1>
+          <p className="mt-2 max-w-2xl text-gray-600">
             Gestione del materiale in uscita per eventi, fiere e attività esterne.
           </p>
         </div>
@@ -399,7 +437,7 @@ export default function EventsPage() {
           {selectedEvent && (
             <button
               onClick={handlePrintReport}
-              className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white hover:bg-black"
+              className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white shadow-sm transition hover:bg-black"
             >
               Stampa report
             </button>
@@ -407,7 +445,7 @@ export default function EventsPage() {
 
           <a
             href="/stocks"
-            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"
+            className="rounded-xl bg-white px-5 py-3 text-center font-semibold text-gray-900 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
           >
             Vai agli Stock
           </a>
@@ -415,27 +453,27 @@ export default function EventsPage() {
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3 print:hidden">
-        <div className="rounded-2xl bg-white p-5 shadow">
+        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Eventi totali</p>
-          <p className="text-3xl font-bold">{events.length}</p>
+          <p className="mt-2 text-3xl font-bold">{events.length}</p>
         </div>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
+        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Eventi aperti</p>
-          <p className="text-3xl font-bold">
+          <p className="mt-2 text-3xl font-bold">
             {events.filter((event) => event.status === "OPEN").length}
           </p>
         </div>
 
-        <div className="rounded-2xl bg-white p-5 shadow">
+        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
           <p className="text-sm text-gray-500">Materiali collegati</p>
-          <p className="text-3xl font-bold">
+          <p className="mt-2 text-3xl font-bold">
             {(eventDetail?.assets.length ?? 0) + (eventDetail?.stocks.length ?? 0)}
           </p>
         </div>
       </div>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow print:hidden">
+      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6 print:hidden">
         <h2 className="mb-4 text-xl font-bold">Crea nuovo evento</h2>
 
         <form onSubmit={handleCreateEvent} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -477,7 +515,7 @@ export default function EventsPage() {
           <button
             type="submit"
             disabled={creatingEvent || !newEventName.trim()}
-            className="rounded-xl bg-gray-900 p-3 font-semibold text-white hover:bg-black disabled:opacity-50"
+            className="rounded-xl bg-gray-900 p-3 font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-50"
           >
             {creatingEvent ? "Creo..." : "Crea evento"}
           </button>
@@ -491,7 +529,7 @@ export default function EventsPage() {
         </form>
       </section>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow print:hidden">
+      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6 print:hidden">
         <h2 className="mb-4 text-xl font-bold">Seleziona evento</h2>
 
         {loading ? (
@@ -517,22 +555,12 @@ export default function EventsPage() {
       </section>
 
       {selectedEvent && (
-        <section className="mb-8 rounded-2xl bg-white p-6 shadow print:hidden">
+        <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6 print:hidden">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-2xl font-bold">{selectedEvent.name}</h2>
-                <span
-                  className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                    selectedEvent.status === "OPEN"
-                      ? "bg-blue-100 text-blue-700"
-                      : selectedEvent.status === "CLOSED"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  {selectedEvent.status}
-                </span>
+                <EventStatusBadge status={selectedEvent.status} />
               </div>
 
               <p className="mt-2 text-gray-500">
@@ -553,7 +581,7 @@ export default function EventsPage() {
               <button
                 onClick={handleCloseEvent}
                 disabled={eventActionLoading || !eventIsOpen}
-                className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
               >
                 Chiudi evento
               </button>
@@ -561,7 +589,7 @@ export default function EventsPage() {
               <button
                 onClick={handleCancelEvent}
                 disabled={eventActionLoading || !eventIsOpen}
-                className="rounded-xl border px-5 py-3 font-semibold hover:bg-white disabled:opacity-50"
+                className="rounded-xl bg-white px-5 py-3 font-semibold shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50 disabled:opacity-50"
               >
                 Annulla evento
               </button>
@@ -569,13 +597,13 @@ export default function EventsPage() {
           </div>
 
           {!eventIsOpen && (
-            <div className="mt-6 rounded-2xl border bg-gray-50 p-4 text-sm text-gray-600">
+            <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50/70 p-4 text-sm text-gray-600 ring-1 ring-gray-100">
               Questo evento non è aperto. Le operazioni di aggiunta materiale e rientro sono bloccate.
             </div>
           )}
 
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <form onSubmit={handleAddAsset} className="rounded-2xl border bg-gray-50 p-5">
+            <form onSubmit={handleAddAsset} className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm ring-1 ring-gray-100">
               <h3 className="mb-4 text-lg font-bold">Aggiungi asset serializzato</h3>
 
               <div className="space-y-3">
@@ -602,14 +630,14 @@ export default function EventsPage() {
                 <button
                   type="submit"
                   disabled={addingMaterial || !assetIdToAdd || !eventIsOpen}
-                  className="w-full rounded-xl bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-blue-600 p-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
                 >
                   Aggiungi asset
                 </button>
               </div>
             </form>
 
-            <form onSubmit={handleAddStock} className="rounded-2xl border bg-gray-50 p-5">
+            <form onSubmit={handleAddStock} className="rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm ring-1 ring-gray-100">
               <h3 className="mb-4 text-lg font-bold">Aggiungi stock/consumabili</h3>
 
               <div className="space-y-3">
@@ -645,7 +673,7 @@ export default function EventsPage() {
                 <button
                   type="submit"
                   disabled={addingMaterial || !stockIdToAdd || !stockQuantity || !eventIsOpen}
-                  className="w-full rounded-xl bg-emerald-600 p-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-emerald-600 p-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
                 >
                   Aggiungi stock
                 </button>
@@ -657,18 +685,23 @@ export default function EventsPage() {
 
       {eventDetail && (
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 print:hidden">
-          <div className="rounded-2xl bg-white p-6 shadow">
+          <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
             <h2 className="mb-4 text-xl font-bold">Asset collegati</h2>
             {eventDetail.assets.length === 0 ? (
               <p className="text-gray-500">Nessun asset collegato.</p>
             ) : (
               <div className="space-y-3">
                 {eventDetail.assets.map((eventAsset) => (
-                  <div key={eventAsset.id} className="rounded-xl bg-gray-50 p-4">
+                  <div
+                    key={eventAsset.id}
+                    className="rounded-2xl bg-gray-50/70 p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md"
+                  >
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <p className="font-semibold">{linkedAssetLabel(eventAsset.asset_id)}</p>
-                        <p className="text-sm text-gray-500">Stato: {eventAsset.status}</p>
+                        <div className="mt-2">
+                          <EventAssetStatusBadge status={eventAsset.status} />
+                        </div>
                         {eventAsset.notes && (
                           <p className="mt-2 text-sm">{eventAsset.notes}</p>
                         )}
@@ -679,7 +712,7 @@ export default function EventsPage() {
                           <button
                             onClick={() => handleReturnAsset(eventAsset.id)}
                             disabled={returningMaterial || !eventIsOpen}
-                            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
                           >
                             Rientrato
                           </button>
@@ -687,7 +720,7 @@ export default function EventsPage() {
                           <button
                             onClick={() => handleMissingAsset(eventAsset.id)}
                             disabled={returningMaterial || !eventIsOpen}
-                            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
                           >
                             Mancante
                           </button>
@@ -700,7 +733,7 @@ export default function EventsPage() {
             )}
           </div>
 
-          <div className="rounded-2xl bg-white p-6 shadow">
+          <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
             <h2 className="mb-4 text-xl font-bold">Stock collegati</h2>
             {eventDetail.stocks.length === 0 ? (
               <p className="text-gray-500">Nessuno stock collegato.</p>
@@ -711,7 +744,10 @@ export default function EventsPage() {
                     eventStock.quantity_out - eventStock.quantity_returned;
 
                   return (
-                    <div key={eventStock.id} className="rounded-xl bg-gray-50 p-4">
+                    <div
+                      key={eventStock.id}
+                      className="rounded-2xl bg-gray-50/70 p-4 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md"
+                    >
                       <p className="font-semibold">
                         {linkedStockLabel(eventStock.stock_card_id)}
                       </p>
@@ -764,7 +800,7 @@ export default function EventsPage() {
                               !eventIsOpen ||
                               !(stockReturnQuantities[eventStock.id] ?? "")
                             }
-                            className="rounded-xl bg-emerald-600 p-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                            className="rounded-xl bg-emerald-600 p-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
                           >
                             Registra rientro
                           </button>
