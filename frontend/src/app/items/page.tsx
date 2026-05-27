@@ -15,6 +15,7 @@ import SectionCard from "@/components/ui/SectionCard";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import DangerButton from "@/components/ui/DangerButton";
+import { toast } from "sonner";
 
 export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
@@ -113,6 +114,7 @@ export default function ItemsPage() {
       setNewItemTechnicalSpecs("");
       setNewItemSerialized(true);
       await loadData();
+      toast.success("Item creato correttamente");
     } finally {
       setCreatingItem(false);
     }
@@ -136,6 +138,7 @@ export default function ItemsPage() {
 
       await loadData();
       cancelEdit();
+      toast.success("Item aggiornato correttamente");
     } finally {
       setSaving(false);
     }
@@ -145,7 +148,7 @@ export default function ItemsPage() {
     const assetCount = item.asset_count ?? 0;
 
     if (assetCount > 0) {
-      alert("Non puoi eliminare questo item perché ha asset collegati.");
+      toast.error("Non puoi eliminare questo item perché ha asset collegati.");
       return;
     }
 
@@ -160,9 +163,10 @@ export default function ItemsPage() {
     try {
       await deleteItem(item.id);
       await loadData();
+      toast.success("Item eliminato correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante l'eliminazione dell'item.");
+      toast.error("Errore durante l'eliminazione dell'item.");
     } finally {
       setDeletingItemId(null);
     }

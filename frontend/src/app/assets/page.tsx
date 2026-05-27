@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
+import { toast } from "sonner";
 import {
   Asset,
   Item,
@@ -67,6 +68,10 @@ export default function AssetsPage() {
       setLocationCode("");
       setNotes("");
       await loadData();
+      toast.success("Asset creato correttamente");
+    } catch (error) {
+      console.error(error);
+      toast.error("Errore durante la creazione dell'asset.");
     } finally {
       setLoading(false);
     }
