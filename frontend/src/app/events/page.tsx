@@ -26,6 +26,13 @@ import {
   Item,
   Location,
 } from "@/lib/api";
+
+import PageHeader from "@/components/ui/PageHeader";
+import StatCard from "@/components/ui/StatCard";
+import SectionCard from "@/components/ui/SectionCard";
+import PrimaryButton from "@/components/ui/PrimaryButton";
+import SecondaryButton from "@/components/ui/SecondaryButton";
+import DangerButton from "@/components/ui/DangerButton";
 import StatusBadge from "@/components/StatusBadge";
 
 
@@ -385,66 +392,46 @@ export default function EventsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between print:hidden">
-        <div>
-          <a
-            href="/"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm ring-1 ring-gray-100 transition hover:bg-blue-50"
-          >
-            ← Dashboard
-          </a>
+      <div className="print:hidden">
+        <PageHeader
+          backHref="/"
+          backLabel="Dashboard"
+          eyebrow="Logistica eventi"
+          title="Eventi e fiere"
+          description="Gestione del materiale in uscita per eventi, fiere e attività esterne."
+          actions={
+            <>
+              {selectedEvent && (
+                <PrimaryButton onClick={handlePrintReport}>
+                  Stampa report
+                </PrimaryButton>
+              )}
 
-          <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-gray-400">
-            Logistica eventi
-          </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">Eventi e fiere</h1>
-          <p className="mt-2 max-w-2xl text-gray-600">
-            Gestione del materiale in uscita per eventi, fiere e attività esterne.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row print:hidden">
-          {selectedEvent && (
-            <button
-              onClick={handlePrintReport}
-              className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white shadow-sm transition hover:bg-black"
-            >
-              Stampa report
-            </button>
-          )}
-
-          <a
-            href="/stocks"
-            className="rounded-xl bg-white px-5 py-3 text-center font-semibold text-gray-900 shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50"
-          >
-            Vai agli Stock
-          </a>
-        </div>
+              <SecondaryButton href="/stocks">
+                Vai agli Stock
+              </SecondaryButton>
+            </>
+          }
+        />
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3 print:hidden">
-        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Eventi totali</p>
-          <p className="mt-2 text-3xl font-bold">{events.length}</p>
-        </div>
+        <StatCard title="Eventi totali" value={events.length} />
 
-        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Eventi aperti</p>
-          <p className="mt-2 text-3xl font-bold">
-            {events.filter((event) => event.status === "OPEN").length}
-          </p>
-        </div>
+        <StatCard
+          title="Eventi aperti"
+          value={events.filter((event) => event.status === "OPEN").length}
+          variant="info"
+          badge={<StatusBadge status="OPEN" size="sm" />}
+        />
 
-        <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Materiali collegati</p>
-          <p className="mt-2 text-3xl font-bold">
-            {(eventDetail?.assets.length ?? 0) + (eventDetail?.stocks.length ?? 0)}
-          </p>
-        </div>
+        <StatCard
+          title="Materiali collegati"
+          value={(eventDetail?.assets.length ?? 0) + (eventDetail?.stocks.length ?? 0)}
+        />
       </div>
 
-      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6 print:hidden">
-        <h2 className="mb-4 text-xl font-bold">Crea nuovo evento</h2>
+      <SectionCard className="mb-8 print:hidden" title="Crea nuovo evento">
 
         <form onSubmit={handleCreateEvent} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <input
@@ -482,13 +469,13 @@ export default function EventsPage() {
             onChange={(e) => setNewEventEndDate(e.target.value)}
           />
 
-          <button
+          <PrimaryButton
             type="submit"
             disabled={creatingEvent || !newEventName.trim()}
-            className="rounded-xl bg-gray-900 p-3 font-semibold text-white shadow-sm transition hover:bg-black disabled:opacity-50"
+            className="p-3"
           >
             {creatingEvent ? "Creo..." : "Crea evento"}
-          </button>
+          </PrimaryButton>
 
           <input
             className="rounded-xl border p-3 lg:col-span-3"
@@ -497,10 +484,9 @@ export default function EventsPage() {
             onChange={(e) => setNewEventNotes(e.target.value)}
           />
         </form>
-      </section>
+      </SectionCard>
 
-      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6 print:hidden">
-        <h2 className="mb-4 text-xl font-bold">Seleziona evento</h2>
+      <SectionCard className="mb-8 print:hidden" title="Seleziona evento">
 
         {loading ? (
           <p className="text-gray-500">Caricamento eventi...</p>
@@ -522,10 +508,10 @@ export default function EventsPage() {
             ))}
           </select>
         )}
-      </section>
+      </SectionCard>
 
       {selectedEvent && (
-        <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6 print:hidden">
+        <SectionCard className="mb-8 print:hidden">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-3">
@@ -548,21 +534,20 @@ export default function EventsPage() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
-              <button
+              <PrimaryButton
                 onClick={handleCloseEvent}
                 disabled={eventActionLoading || !eventIsOpen}
-                className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                className="bg-emerald-600 hover:bg-emerald-700"
               >
                 Chiudi evento
-              </button>
+              </PrimaryButton>
 
-              <button
+              <DangerButton
                 onClick={handleCancelEvent}
                 disabled={eventActionLoading || !eventIsOpen}
-                className="rounded-xl bg-white px-5 py-3 font-semibold shadow-sm ring-1 ring-gray-100 transition hover:bg-gray-50 disabled:opacity-50"
               >
                 Annulla evento
-              </button>
+              </DangerButton>
             </div>
           </div>
 
@@ -597,13 +582,13 @@ export default function EventsPage() {
                   onChange={(e) => setAssetNotes(e.target.value)}
                 />
 
-                <button
+                <PrimaryButton
                   type="submit"
                   disabled={addingMaterial || !assetIdToAdd || !eventIsOpen}
-                  className="w-full rounded-xl bg-blue-600 p-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+                  className="w-full bg-blue-600 p-3 hover:bg-blue-700"
                 >
                   Aggiungi asset
-                </button>
+                </PrimaryButton>
               </div>
             </form>
 
@@ -640,23 +625,22 @@ export default function EventsPage() {
                   onChange={(e) => setStockNotes(e.target.value)}
                 />
 
-                <button
+                <PrimaryButton
                   type="submit"
                   disabled={addingMaterial || !stockIdToAdd || !stockQuantity || !eventIsOpen}
-                  className="w-full rounded-xl bg-emerald-600 p-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                  className="w-full bg-emerald-600 p-3 hover:bg-emerald-700"
                 >
                   Aggiungi stock
-                </button>
+                </PrimaryButton>
               </div>
             </form>
           </div>
-        </section>
+        </SectionCard>
       )}
 
       {eventDetail && (
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 print:hidden">
-          <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
-            <h2 className="mb-4 text-xl font-bold">Asset collegati</h2>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 print:hidden">
+          <SectionCard title="Asset collegati">
             {eventDetail.assets.length === 0 ? (
               <p className="text-gray-500">Nessun asset collegato.</p>
             ) : (
@@ -679,21 +663,21 @@ export default function EventsPage() {
 
                       {eventAsset.status === "OUT" && (
                         <div className="flex gap-2">
-                          <button
+                          <PrimaryButton
                             onClick={() => handleReturnAsset(eventAsset.id)}
                             disabled={returningMaterial || !eventIsOpen}
-                            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                            className="bg-emerald-600 px-4 py-2 text-sm hover:bg-emerald-700"
                           >
                             Rientrato
-                          </button>
+                          </PrimaryButton>
 
-                          <button
+                          <DangerButton
                             onClick={() => handleMissingAsset(eventAsset.id)}
                             disabled={returningMaterial || !eventIsOpen}
-                            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
+                            className="border-red-600 bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
                           >
                             Mancante
-                          </button>
+                          </DangerButton>
                         </div>
                       )}
                     </div>
@@ -701,10 +685,9 @@ export default function EventsPage() {
                 ))}
               </div>
             )}
-          </div>
+          </SectionCard>
 
-          <div className="rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
-            <h2 className="mb-4 text-xl font-bold">Stock collegati</h2>
+          <SectionCard title="Stock collegati">
             {eventDetail.stocks.length === 0 ? (
               <p className="text-gray-500">Nessuno stock collegato.</p>
             ) : (
@@ -763,17 +746,17 @@ export default function EventsPage() {
                             }
                           />
 
-                          <button
+                          <PrimaryButton
                             onClick={() => handleReturnStock(eventStock.id)}
                             disabled={
                               returningMaterial ||
                               !eventIsOpen ||
                               !(stockReturnQuantities[eventStock.id] ?? "")
                             }
-                            className="rounded-xl bg-emerald-600 p-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50"
+                            className="bg-emerald-600 p-3 hover:bg-emerald-700"
                           >
                             Registra rientro
-                          </button>
+                          </PrimaryButton>
                         </div>
                       )}
                     </div>
@@ -781,8 +764,8 @@ export default function EventsPage() {
                 })}
               </div>
             )}
-          </div>
-        </section>
+          </SectionCard>
+        </div>
       )}
       {selectedEvent && eventDetail && (
         <section className="hidden print:block print:p-8">
