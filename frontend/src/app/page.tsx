@@ -1,5 +1,10 @@
 import { getAssets, getEvent, getEvents, getItems, getStocks } from "@/lib/api";
 import StatusBadge from "@/components/StatusBadge";
+import PageHeader from "@/components/ui/PageHeader";
+import StatCard from "@/components/ui/StatCard";
+import SectionCard from "@/components/ui/SectionCard";
+import PrimaryButton from "@/components/ui/PrimaryButton";
+import SecondaryButton from "@/components/ui/SecondaryButton";
 
 export default async function Home() {
   const [assets, stocks, events, items] = await Promise.all([
@@ -63,57 +68,41 @@ export default async function Home() {
       </section>
 
       <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Item a catalogo</p>
-          <p className="mt-2 text-3xl font-bold">{items.length}</p>
-          <p className="mt-2 text-sm text-gray-500">
-            Tipologie bene disponibili per creare asset e stock.
-          </p>
-        </div>
+        <StatCard
+          title="Item a catalogo"
+          value={items.length}
+          description="Tipologie bene disponibili per creare asset e stock."
+        />
 
-        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Asset fisici</p>
-          <p className="mt-2 text-3xl font-bold">{assets.length}</p>
-          <p className="mt-2 text-sm text-gray-500">
-            {percentualeInSede}% attualmente in sede.
-          </p>
-        </div>
+        <StatCard
+          title="Asset fisici"
+          value={assets.length}
+          description={`${percentualeInSede}% attualmente in sede.`}
+        />
 
-        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Eventi totali</p>
-          <p className="mt-2 text-3xl font-bold">{events.length}</p>
-          <p className="mt-2 text-sm text-gray-500">
-            {eventiAperti} aperti, {eventiChiusi} chiusi, {eventiAnnullati} annullati.
-          </p>
-        </div>
+        <StatCard
+          title="Eventi totali"
+          value={events.length}
+          description={`${eventiAperti} aperti, ${eventiChiusi} chiusi, ${eventiAnnullati} annullati.`}
+        />
 
-        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
-          <p className="text-sm text-gray-500">Stock monitorati</p>
-          <p className="mt-2 text-3xl font-bold">{stocks.length}</p>
-          <p className="mt-2 text-sm text-gray-500">
-            {stockSottoSoglia} sotto soglia minima.
-          </p>
-        </div>
+        <StatCard
+          title="Stock monitorati"
+          value={stocks.length}
+          description={`${stockSottoSoglia} sotto soglia minima.`}
+        />
       </section>
 
-      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-gray-500">
-              Eventi recenti
-            </p>
-            <h2 className="mt-1 text-2xl font-bold">
-              Ultime movimentazioni logistiche
-            </h2>
-          </div>
-
-          <a
-            href="/events"
-            className="inline-flex rounded-xl bg-gray-50 px-4 py-2 text-sm font-semibold text-blue-700 ring-1 ring-gray-100 transition hover:bg-blue-50"
-          >
+      <SectionCard
+        className="mb-8"
+        title="Ultime movimentazioni logistiche"
+        description="Eventi recenti"
+        actions={
+          <SecondaryButton href="/events" className="px-4 py-2 text-sm text-blue-700 hover:bg-blue-50">
             Vai agli eventi →
-          </a>
-        </div>
+          </SecondaryButton>
+        }
+      >
 
         {latestEventDetails.length === 0 ? (
           <p className="mt-5 text-gray-500">
@@ -157,17 +146,7 @@ export default async function Home() {
                       </p>
                     </div>
 
-                    <span
-                      className={`rounded-full border px-3 py-1 text-sm font-semibold ${
-                        detail.event.status === "OPEN"
-                          ? "border-blue-200 bg-blue-100 text-blue-700"
-                          : detail.event.status === "CLOSED"
-                            ? "border-emerald-200 bg-emerald-100 text-emerald-700"
-                            : "border-gray-200 bg-gray-100 text-gray-700"
-                      }`}
-                    >
-                      {detail.event.status}
-                    </span>
+                    <StatusBadge status={detail.event.status} />
                   </div>
 
                   <div className="mt-4 grid grid-cols-3 gap-3 text-center">
@@ -197,27 +176,18 @@ export default async function Home() {
             })}
           </div>
         )}
-      </section>
+      </SectionCard>
 
-      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-gray-500">
-              Distribuzione asset
-            </p>
-            <h2 className="mt-1 text-2xl font-bold">
-              Stato inventario fisico
-            </h2>
-          </div>
-
-          <a
-            href="/assets"
-            className="inline-flex rounded-xl bg-gray-50 px-4 py-2 text-sm font-semibold text-blue-700 ring-1 ring-gray-100 transition hover:bg-blue-50"
-          >
+      <SectionCard
+        className="mb-8"
+        title="Stato inventario fisico"
+        description="Distribuzione asset"
+        actions={
+          <SecondaryButton href="/assets" className="px-4 py-2 text-sm text-blue-700 hover:bg-blue-50">
             Vai agli asset →
-          </a>
-        </div>
-
+          </SecondaryButton>
+        }
+      >
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
           <a href="/assets?status=IN_SEDE" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md">
             <div className="flex items-center justify-between gap-3">
@@ -251,30 +221,19 @@ export default async function Home() {
             <p className="mt-3 text-2xl font-bold">{assetMancanti}</p>
           </a>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="mb-8 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-gray-500">
-              Alert operativi
-            </p>
-            <h2 className="mt-1 text-2xl font-bold">
-              Situazione da monitorare
-            </h2>
-          </div>
-
-          <span
-            className={`rounded-full border px-4 py-2 text-sm font-semibold ${
-              hasAlerts
-                ? "border-red-200 bg-red-100 text-red-700"
-                : "border-emerald-200 bg-emerald-100 text-emerald-700"
-            }`}
-          >
-            {hasAlerts ? "Richiede attenzione" : "Tutto regolare"}
-          </span>
-        </div>
-
+      <SectionCard
+        className="mb-8"
+        title="Situazione da monitorare"
+        description="Alert operativi"
+        actions={
+          <StatusBadge
+            status={hasAlerts ? "MANCANTE" : "IN_SEDE"}
+            label={hasAlerts ? "Richiede attenzione" : "Tutto regolare"}
+          />
+        }
+      >
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
           <a
             href="/stocks?lowStock=1"
@@ -308,7 +267,7 @@ export default async function Home() {
             <p className="mt-1 text-2xl font-bold">{assetMancanti}</p>
           </a>
         </div>
-      </section>
+      </SectionCard>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
         <a
@@ -389,17 +348,13 @@ export default async function Home() {
           </p>
         </a>
 
-        <div className="rounded-3xl bg-white p-6 shadow ring-1 ring-gray-100 md:col-span-2 xl:col-span-6">
-          <p className="text-sm uppercase tracking-wide text-gray-500">
-            Prossimi moduli
-          </p>
-          <h2 className="mt-2 text-2xl font-bold">In evoluzione</h2>
+        <SectionCard className="md:col-span-2 xl:col-span-6" title="In evoluzione" description="Prossimi moduli">
           <ul className="mt-3 space-y-2 text-gray-600">
             <li>• alert ritardi e incongruenze</li>
             <li>• report evento PDF</li>
             <li>• login utenti e permessi</li>
           </ul>
-        </div>
+        </SectionCard>
       </section>
     </main>
   );
