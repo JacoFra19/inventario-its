@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
+import DataTable from "@/components/ui/DataTable";
+import type { DataTableColumn } from "@/components/ui/DataTable";
 import { toast } from "sonner";
 import {
   Asset,
@@ -117,13 +120,47 @@ export default function AssetsPage() {
 
   const uniqueStatuses = Array.from(new Set(assets.map((asset) => asset.status)));
 
+  const assetColumns: DataTableColumn<Asset>[] = [
+    {
+      key: "id",
+      header: "ID",
+      render: (asset) => asset.id,
+    },
+    {
+      key: "inventory_code",
+      header: "Codice",
+      cellClassName: "font-mono font-semibold text-blue-700",
+      render: (asset) => asset.inventory_code,
+    },
+    {
+      key: "location",
+      header: "Sede",
+      render: (asset) => locationLabel(asset.current_location_id),
+    },
+    {
+      key: "status",
+      header: "Stato",
+      render: (asset) => <StatusBadge status={asset.status} />,
+    },
+    {
+      key: "assigned_to",
+      header: "Assegnato a",
+      render: (asset) => asset.assigned_to ?? "-",
+    },
+    {
+      key: "notes",
+      header: "Note",
+      render: (asset) => asset.notes ?? "-",
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <a href="/" className="text-blue-600 hover:underline">
+          <Link href="/" className="text-blue-600 hover:underline">
             ← Dashboard
-          </a>
+          </Link>
 
           <h1 className="mt-4 text-3xl font-bold">Asset</h1>
           <p className="text-gray-600">
@@ -132,19 +169,19 @@ export default function AssetsPage() {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          <a
+          <Link
             href="/items"
             className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"
           >
             Catalogo Item
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/scan"
             className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white shadow hover:bg-black"
           >
             Apri Scanner QR
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -350,58 +387,26 @@ export default function AssetsPage() {
         </p>
       </section>
 
-      <section className="overflow-hidden rounded-2xl bg-white shadow ring-1 ring-gray-100">
-        <div className="max-h-[620px] overflow-auto">
-          <table className="min-w-full text-sm">
-          <thead className="sticky top-0 z-10 bg-gray-100/95 text-xs uppercase tracking-wide text-gray-500 backdrop-blur">
-            <tr>
-              <th className="p-4 text-left">ID</th>
-              <th className="p-4 text-left">Codice</th>
-              <th className="p-4 text-left">Sede</th>
-              <th className="p-4 text-left">Stato</th>
-              <th className="p-4 text-left">Assegnato a</th>
-              <th className="p-4 text-left">Note</th>
-              <th className="p-4 text-right">Apri</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredAssets.length === 0 && (
-              <tr>
-                <td colSpan={7} className="p-6 text-center text-gray-500">
-                  Nessun asset trovato con i filtri selezionati.
-                </td>
-              </tr>
-            )}
-            {filteredAssets.map((asset, index) => (
-              <tr
-                key={asset.id}
-                onClick={() => {
-                  window.location.href = `/assets/${asset.inventory_code}`;
-                }}
-                className={`group cursor-pointer border-t transition hover:bg-blue-50/70 ${
-                  index % 2 === 0 ? "bg-white" : "bg-gray-50/40"
-                }`}
-              >
-                <td className="p-4">{asset.id}</td>
-                <td className="p-4 font-mono font-semibold text-blue-700">
-                  {asset.inventory_code}
-                </td>
-                <td className="p-4">{locationLabel(asset.current_location_id)}</td>
-                <td className="p-4">
-                  <StatusBadge status={asset.status} />
-                </td>
-                <td className="p-4">{asset.assigned_to ?? "-"}</td>
-                <td className="p-4">{asset.notes ?? "-"}</td>
-                <td className="p-4 text-right text-gray-400 transition group-hover:translate-x-1 group-hover:text-blue-600">
-                  →
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          </table>
-        </div>
-      </section>
+      <DataTable
+        columns={assetColumns}
+        rows={filteredAssets}
+        getRowKey={(asset) => asset.id}
+        emptyMessage="Nessun asset trovato con i filtri selezionati."
+        className="rounded-2xl"
+        scrollClassName="max-h-[620px] overflow-auto"
+        rowClassName={(_, index) => (index % 2 === 0 ? "bg-white" : "bg-gray-50/40")}
+        onRowClick={(asset) => {
+          window.location.href = `/assets/${asset.inventory_code}`;
+        }}
+        actions={{
+          header: "Apri",
+          render: () => (
+            <span className="inline-block text-gray-400 transition group-hover:translate-x-1 group-hover:text-blue-600">
+              →
+            </span>
+          ),
+        }}
+      />
     </main>
   );
 }

@@ -8,7 +8,9 @@ import { toast } from "sonner";
 import {
   Asset,
   Event,
+  EventAsset,
   EventDetail,
+  EventStock,
   StockCard,
   addAssetToEvent,
   addStockToEvent,
@@ -34,6 +36,8 @@ import SectionCard from "@/components/ui/SectionCard";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import DangerButton from "@/components/ui/DangerButton";
+import DataTable from "@/components/ui/DataTable";
+import type { DataTableColumn } from "@/components/ui/DataTable";
 import StatusBadge from "@/components/StatusBadge";
 
 
@@ -390,6 +394,73 @@ export default function EventsPage() {
   function reportDate(value: string | null) {
     return value || "-";
   }
+
+  const reportHeaderClass =
+    "static bg-white text-sm normal-case tracking-normal text-gray-900 backdrop-blur-none";
+  const reportColumnClass = "border p-2 text-left";
+
+  const reportAssetColumns: DataTableColumn<EventAsset>[] = [
+    {
+      key: "code",
+      header: "Codice",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventAsset) => linkedAssetLabel(eventAsset.asset_id),
+    },
+    {
+      key: "status",
+      header: "Stato",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventAsset) => eventAsset.status,
+    },
+    {
+      key: "notes",
+      header: "Note",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventAsset) => eventAsset.notes ?? "-",
+    },
+  ];
+
+  const reportStockColumns: DataTableColumn<EventStock>[] = [
+    {
+      key: "stockcard",
+      header: "Stockcard",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventStock) => linkedStockLabel(eventStock.stock_card_id),
+    },
+    {
+      key: "quantity_out",
+      header: "Usciti",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventStock) => eventStock.quantity_out,
+    },
+    {
+      key: "quantity_returned",
+      header: "Rientrati",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventStock) => eventStock.quantity_returned,
+    },
+    {
+      key: "remaining",
+      header: "Da rientrare",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventStock) =>
+        eventStock.quantity_out - eventStock.quantity_returned,
+    },
+    {
+      key: "notes",
+      header: "Note",
+      headerClassName: reportColumnClass,
+      cellClassName: reportColumnClass,
+      render: (eventStock) => eventStock.notes ?? "-",
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
@@ -812,64 +883,31 @@ export default function EventsPage() {
           <div className="mt-8">
             <h2 className="mb-3 text-xl font-bold">Asset serializzati</h2>
 
-            {eventDetail.assets.length === 0 ? (
-              <p className="text-sm text-gray-600">Nessun asset collegato.</p>
-            ) : (
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className="border p-2 text-left">Codice</th>
-                    <th className="border p-2 text-left">Stato</th>
-                    <th className="border p-2 text-left">Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {eventDetail.assets.map((eventAsset) => (
-                    <tr key={eventAsset.id}>
-                      <td className="border p-2">{linkedAssetLabel(eventAsset.asset_id)}</td>
-                      <td className="border p-2">{eventAsset.status}</td>
-                      <td className="border p-2">{eventAsset.notes ?? "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <DataTable
+              columns={reportAssetColumns}
+              rows={eventDetail.assets}
+              getRowKey={(eventAsset) => eventAsset.id}
+              emptyMessage="Nessun asset collegato."
+              className="rounded-none shadow-none ring-0"
+              scrollClassName="overflow-visible"
+              tableClassName="w-full border-collapse"
+              headerClassName={reportHeaderClass}
+            />
           </div>
 
           <div className="mt-8">
             <h2 className="mb-3 text-xl font-bold">Stock e consumabili</h2>
 
-            {eventDetail.stocks.length === 0 ? (
-              <p className="text-sm text-gray-600">Nessuno stock collegato.</p>
-            ) : (
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    <th className="border p-2 text-left">Stockcard</th>
-                    <th className="border p-2 text-left">Usciti</th>
-                    <th className="border p-2 text-left">Rientrati</th>
-                    <th className="border p-2 text-left">Da rientrare</th>
-                    <th className="border p-2 text-left">Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {eventDetail.stocks.map((eventStock) => {
-                    const remaining =
-                      eventStock.quantity_out - eventStock.quantity_returned;
-
-                    return (
-                      <tr key={eventStock.id}>
-                        <td className="border p-2">{linkedStockLabel(eventStock.stock_card_id)}</td>
-                        <td className="border p-2">{eventStock.quantity_out}</td>
-                        <td className="border p-2">{eventStock.quantity_returned}</td>
-                        <td className="border p-2">{remaining}</td>
-                        <td className="border p-2">{eventStock.notes ?? "-"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+            <DataTable
+              columns={reportStockColumns}
+              rows={eventDetail.stocks}
+              getRowKey={(eventStock) => eventStock.id}
+              emptyMessage="Nessuno stock collegato."
+              className="rounded-none shadow-none ring-0"
+              scrollClassName="overflow-visible"
+              tableClassName="w-full border-collapse"
+              headerClassName={reportHeaderClass}
+            />
           </div>
 
           <div className="mt-12 grid grid-cols-2 gap-12 text-sm">

@@ -16,6 +16,8 @@ import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import DangerButton from "@/components/ui/DangerButton";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import DataTable from "@/components/ui/DataTable";
+import type { DataTableColumn } from "@/components/ui/DataTable";
 import { toast } from "sonner";
 
 export default function ItemsPage() {
@@ -201,6 +203,138 @@ export default function ItemsPage() {
     }
   }
 
+  const itemColumns: DataTableColumn<Item>[] = [
+    {
+      key: "name",
+      header: "Nome",
+      render: (item) => {
+        const isEditing = editingItemId === item.id;
+
+        return isEditing ? (
+          <input
+            className="w-full rounded-xl border p-2"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
+        ) : (
+          <div>
+            <p className="font-semibold text-gray-900">
+              {item.name}
+            </p>
+
+            {item.technical_specs && (
+              <p className="mt-1 whitespace-pre-wrap text-xs text-gray-500">
+                {item.technical_specs}
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "category",
+      header: "Categoria",
+      render: (item) => {
+        const isEditing = editingItemId === item.id;
+
+        return isEditing ? (
+          <select
+            className="w-full rounded-xl border p-2"
+            value={editCategoryId}
+            onChange={(e) => setEditCategoryId(e.target.value)}
+          >
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+            {item.category?.name ?? "-"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "brand",
+      header: "Marca",
+      render: (item) => {
+        const isEditing = editingItemId === item.id;
+
+        return isEditing ? (
+          <input
+            className="w-full rounded-xl border p-2"
+            value={editBrand}
+            onChange={(e) => setEditBrand(e.target.value)}
+          />
+        ) : (
+          item.brand ?? "-"
+        );
+      },
+    },
+    {
+      key: "model",
+      header: "Modello",
+      render: (item) => {
+        const isEditing = editingItemId === item.id;
+
+        return isEditing ? (
+          <input
+            className="w-full rounded-xl border p-2"
+            value={editModel}
+            onChange={(e) => setEditModel(e.target.value)}
+          />
+        ) : (
+          item.model ?? "-"
+        );
+      },
+    },
+    {
+      key: "asset_count",
+      header: "Asset collegati",
+      render: (item) => (
+        <span
+          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+            (item.asset_count ?? 0) > 0
+              ? "border-blue-200 bg-blue-100 text-blue-700"
+              : "border-gray-200 bg-gray-100 text-gray-600"
+          }`}
+        >
+          {item.asset_count ?? 0}
+        </span>
+      ),
+    },
+    {
+      key: "serialized",
+      header: "Serializzato",
+      render: (item) => {
+        const isEditing = editingItemId === item.id;
+
+        return isEditing ? (
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={editSerialized}
+              onChange={(e) =>
+                setEditSerialized(e.target.checked)
+              }
+            />
+            Serializzato
+          </label>
+        ) : item.is_serialized ? (
+          <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+            SI
+          </span>
+        ) : (
+          <span className="rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+            NO
+          </span>
+        );
+      },
+    },
+  ];
+
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
       <ConfirmDialog
@@ -319,170 +453,49 @@ export default function ItemsPage() {
           </div>
         </SectionCard>
 
-        <section className="overflow-hidden rounded-3xl bg-white shadow ring-1 ring-gray-100">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-gray-100/95 text-left text-xs uppercase tracking-wide text-gray-500 backdrop-blur">
-                <tr>
-                  <th className="p-4 font-semibold">Nome</th>
-                  <th className="p-4 font-semibold">Categoria</th>
-                  <th className="p-4 font-semibold">Marca</th>
-                  <th className="p-4 font-semibold">Modello</th>
-                  <th className="p-4 font-semibold">Asset collegati</th>
-                  <th className="p-4 font-semibold">Serializzato</th>
-                  <th className="p-4 font-semibold text-right">Azioni</th>
-                </tr>
-              </thead>
+        <DataTable
+          columns={itemColumns}
+          rows={filteredItems}
+          getRowKey={(item) => item.id}
+          emptyMessage="Nessun item trovato con i filtri selezionati."
+          actions={{
+            header: "Azioni",
+            render: (item) => {
+              const isEditing = editingItemId === item.id;
 
-              <tbody>
-                {filteredItems.map((item) => {
-                  const isEditing = editingItemId === item.id;
-
-                  return (
-                    <tr
-                      key={item.id}
-                      className="group border-t align-top transition hover:bg-blue-50/40"
-                    >
-                      <td className="p-4">
-                        {isEditing ? (
-                          <input
-                            className="w-full rounded-xl border p-2"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                          />
-                        ) : (
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {item.name}
-                            </p>
-
-                            {item.technical_specs && (
-                              <p className="mt-1 whitespace-pre-wrap text-xs text-gray-500">
-                                {item.technical_specs}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="p-4">
-                        {isEditing ? (
-                          <select
-                            className="w-full rounded-xl border p-2"
-                            value={editCategoryId}
-                            onChange={(e) => setEditCategoryId(e.target.value)}
-                          >
-                            {categories.map((category) => (
-                              <option key={category.id} value={category.id}>
-                                {category.name}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className="rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                            {item.category?.name ?? "-"}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="p-4">
-                        {isEditing ? (
-                          <input
-                            className="w-full rounded-xl border p-2"
-                            value={editBrand}
-                            onChange={(e) => setEditBrand(e.target.value)}
-                          />
-                        ) : (
-                          item.brand ?? "-"
-                        )}
-                      </td>
-
-                      <td className="p-4">
-                        {isEditing ? (
-                          <input
-                            className="w-full rounded-xl border p-2"
-                            value={editModel}
-                            onChange={(e) => setEditModel(e.target.value)}
-                          />
-                        ) : (
-                          item.model ?? "-"
-                        )}
-                      </td>
-
-                      <td className="p-4">
-                        <span
-                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                            (item.asset_count ?? 0) > 0
-                              ? "border-blue-200 bg-blue-100 text-blue-700"
-                              : "border-gray-200 bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {item.asset_count ?? 0}
-                        </span>
-                      </td>
-
-                      <td className="p-4">
-                        {isEditing ? (
-                          <label className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={editSerialized}
-                              onChange={(e) =>
-                                setEditSerialized(e.target.checked)
-                              }
-                            />
-                            Serializzato
-                          </label>
-                        ) : item.is_serialized ? (
-                          <span className="rounded-full border border-emerald-200 bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                            SI
-                          </span>
-                        ) : (
-                          <span className="rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
-                            NO
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="p-4 text-right">
-                        {isEditing ? (
-                          <div className="flex justify-end gap-2">
-                            <SecondaryButton onClick={cancelEdit} className="px-4 py-2">
-                              Annulla
-                            </SecondaryButton>
-                            <PrimaryButton
-                              onClick={handleSave}
-                              disabled={saving}
-                              className="px-4 py-2"
-                            >
-                              {saving ? "Salvo..." : "Salva"}
-                            </PrimaryButton>
-                          </div>
-                        ) : (
-                          <div className="flex justify-end gap-2">
-                            <SecondaryButton
-                              onClick={() => startEdit(item)}
-                              className="px-4 py-2"
-                            >
-                              Modifica
-                            </SecondaryButton>
-                            <DangerButton
-                              onClick={() => handleDelete(item)}
-                              disabled={itemHasLinkedRecords(item) || deletingItemId === item.id}
-                              className="px-4 py-2"
-                            >
-                              {deletingItemId === item.id ? "Elimino..." : "Elimina"}
-                            </DangerButton>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+              return isEditing ? (
+                <div className="flex justify-end gap-2">
+                  <SecondaryButton onClick={cancelEdit} className="px-4 py-2">
+                    Annulla
+                  </SecondaryButton>
+                  <PrimaryButton
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="px-4 py-2"
+                  >
+                    {saving ? "Salvo..." : "Salva"}
+                  </PrimaryButton>
+                </div>
+              ) : (
+                <div className="flex justify-end gap-2">
+                  <SecondaryButton
+                    onClick={() => startEdit(item)}
+                    className="px-4 py-2"
+                  >
+                    Modifica
+                  </SecondaryButton>
+                  <DangerButton
+                    onClick={() => handleDelete(item)}
+                    disabled={itemHasLinkedRecords(item) || deletingItemId === item.id}
+                    className="px-4 py-2"
+                  >
+                    {deletingItemId === item.id ? "Elimino..." : "Elimina"}
+                  </DangerButton>
+                </div>
+              );
+            },
+          }}
+        />
       </div>
     </main>
   );
