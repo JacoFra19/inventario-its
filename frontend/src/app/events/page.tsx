@@ -36,6 +36,7 @@ import SectionCard from "@/components/ui/SectionCard";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import DangerButton from "@/components/ui/DangerButton";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import DataTable from "@/components/ui/DataTable";
 import type { DataTableColumn } from "@/components/ui/DataTable";
 import StatusBadge from "@/components/StatusBadge";
@@ -69,6 +70,7 @@ export default function EventsPage() {
   const [addingMaterial, setAddingMaterial] = useState(false);
   const [returningMaterial, setReturningMaterial] = useState(false);
   const [eventActionLoading, setEventActionLoading] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [stockReturnQuantities, setStockReturnQuantities] = useState<Record<number, string>>({});
   const [stockReturnNotes, setStockReturnNotes] = useState<Record<number, string>>({});
 
@@ -364,14 +366,8 @@ export default function EventsPage() {
     }
   }
 
-  async function handleCancelEvent() {
+  async function confirmCancelEvent() {
     if (!selectedEvent) return;
-
-    const confirmed = window.confirm(
-      "Vuoi davvero annullare questo evento? L'operazione è consentita solo se non ci sono materiali collegati."
-    );
-
-    if (!confirmed) return;
 
     setEventActionLoading(true);
 
@@ -384,6 +380,7 @@ export default function EventsPage() {
       toast.error(getReadableError(error));
     } finally {
       setEventActionLoading(false);
+      setCancelDialogOpen(false);
     }
   }
 
@@ -464,6 +461,17 @@ export default function EventsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8 print:bg-white print:p-0">
+      <ConfirmDialog
+        open={cancelDialogOpen}
+        title="Annullare evento?"
+        description="L'operazione è consentita solo se non ci sono materiali collegati."
+        confirmLabel="Annulla evento"
+        cancelLabel="Chiudi"
+        variant="danger"
+        onConfirm={confirmCancelEvent}
+        onCancel={() => setCancelDialogOpen(false)}
+      />
+
       <div className="print:hidden">
         <PageHeader
           backHref="/"
@@ -615,7 +623,7 @@ export default function EventsPage() {
               </PrimaryButton>
 
               <DangerButton
-                onClick={handleCancelEvent}
+                onClick={() => setCancelDialogOpen(true)}
                 disabled={eventActionLoading || !eventIsOpen}
               >
                 Annulla evento

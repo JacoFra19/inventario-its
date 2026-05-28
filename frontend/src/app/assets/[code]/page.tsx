@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   assignAsset,
   getAssetDetail,
@@ -16,6 +17,8 @@ import {
 } from "@/lib/api";
 
 import StatusBadge from "@/components/StatusBadge";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { toast } from "sonner";
 
 type Asset = {
   id: number;
@@ -38,6 +41,8 @@ type Props = {
   }>;
 };
 
+type ConfirmAction = "missing" | "restore" | null;
+
 export default function AssetDetailPage({ params }: Props) {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -50,6 +55,7 @@ export default function AssetDetailPage({ params }: Props) {
   const [assignLoading, setAssignLoading] = useState(false);
   const [missingLoading, setMissingLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   useEffect(() => {
     async function load() {
@@ -110,10 +116,10 @@ export default function AssetDetailPage({ params }: Props) {
       setHistory(historyData);
       await refreshAssetLogs(refreshedAsset.id);
       setSelectedLocation("");
-      alert("Asset trasferito correttamente");
+      toast.success("Asset trasferito correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante il trasferimento. Controlla console/backend.");
+      toast.error("Errore durante il trasferimento dell'asset.");
     } finally {
       setLoading(false);
     }
@@ -132,10 +138,10 @@ export default function AssetDetailPage({ params }: Props) {
 
       const refreshedAsset = await refreshAssetDetail(updatedAsset.inventory_code);
       await refreshAssetLogs(refreshedAsset.id);
-      alert("Asset assegnato correttamente");
+      toast.success("Asset assegnato correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante l'assegnazione. Controlla console/backend.");
+      toast.error("Errore durante l'assegnazione dell'asset.");
     } finally {
       setAssignLoading(false);
     }
@@ -151,10 +157,10 @@ export default function AssetDetailPage({ params }: Props) {
 
       const refreshedAsset = await refreshAssetDetail(updatedAsset.inventory_code);
       await refreshAssetLogs(refreshedAsset.id);
-      alert("Assegnazione rimossa correttamente");
+      toast.success("Assegnazione rimossa correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante la rimozione dell'assegnazione. Controlla console/backend.");
+      toast.error("Errore durante la rimozione dell'assegnazione.");
     } finally {
       setAssignLoading(false);
     }
@@ -162,12 +168,6 @@ export default function AssetDetailPage({ params }: Props) {
 
   async function handleMarkMissing() {
     if (!asset) return;
-
-    const confirmed = window.confirm(
-      `Vuoi segnare l'asset ${asset.inventory_code} come MANCANTE?`
-    );
-
-    if (!confirmed) return;
 
     setMissingLoading(true);
 
@@ -179,23 +179,18 @@ export default function AssetDetailPage({ params }: Props) {
 
       const refreshedAsset = await refreshAssetDetail(updatedAsset.inventory_code);
       await refreshAssetLogs(refreshedAsset.id);
-      alert("Asset segnato come mancante");
+      toast.success("Asset segnato come mancante");
     } catch (error) {
       console.error(error);
-      alert("Errore durante l'aggiornamento dello stato mancante.");
+      toast.error("Errore durante l'aggiornamento dello stato mancante.");
     } finally {
       setMissingLoading(false);
+      setConfirmAction(null);
     }
   }
 
   async function handleRestoreAsset() {
     if (!asset) return;
-
-    const confirmed = window.confirm(
-      `Vuoi ripristinare l'asset ${asset.inventory_code} e riportarlo IN_SEDE?`
-    );
-
-    if (!confirmed) return;
 
     setRestoreLoading(true);
 
@@ -204,12 +199,13 @@ export default function AssetDetailPage({ params }: Props) {
 
       const refreshedAsset = await refreshAssetDetail(updatedAsset.inventory_code);
       await refreshAssetLogs(refreshedAsset.id);
-      alert("Asset ripristinato correttamente");
+      toast.success("Asset ripristinato correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante il ripristino dell'asset.");
+      toast.error("Errore durante il ripristino dell'asset.");
     } finally {
       setRestoreLoading(false);
+      setConfirmAction(null);
     }
   }
 
@@ -244,12 +240,36 @@ export default function AssetDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <a
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction === "restore" ? "Ripristinare asset?" : "Segnare asset mancante?"}
+        description={
+          confirmAction === "restore"
+            ? "L'asset verrà riportato allo stato IN_SEDE."
+            : "L'asset verrà segnato come MANCANTE."
+        }
+        confirmLabel={confirmAction === "restore" ? "Ripristina" : "Segna mancante"}
+        cancelLabel="Annulla"
+        variant={confirmAction === "restore" ? "default" : "danger"}
+        onConfirm={() => {
+          if (confirmAction === "restore") {
+            handleRestoreAsset();
+            return;
+          }
+
+          if (confirmAction === "missing") {
+            handleMarkMissing();
+          }
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      <Link
         href="/assets"
         className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm ring-1 ring-gray-100 transition hover:bg-blue-50"
       >
         ← Torna alla lista
-      </a>
+      </Link>
 
       <div className="mt-6 rounded-3xl bg-white p-5 shadow ring-1 ring-gray-100 md:p-8">
         <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
@@ -284,7 +304,7 @@ export default function AssetDetailPage({ params }: Props) {
 
             {asset.status === "MANCANTE" ? (
               <button
-                onClick={handleRestoreAsset}
+                onClick={() => setConfirmAction("restore")}
                 disabled={restoreLoading}
                 className="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
@@ -292,7 +312,7 @@ export default function AssetDetailPage({ params }: Props) {
               </button>
             ) : (
               <button
-                onClick={handleMarkMissing}
+                onClick={() => setConfirmAction("missing")}
                 disabled={missingLoading}
                 className="rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
               >
