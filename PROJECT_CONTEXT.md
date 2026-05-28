@@ -2,72 +2,86 @@
 
 ## Overview
 
-Inventario ITS e' un gestionale inventario per ITS Turismo Puglia, pensato per amministrare asset serializzati, stock consumabili, eventi e movimentazioni logistiche tra sedi, persone e attivita' esterne.
+Inventario ITS e' un gestionale inventario per ITS Turismo Puglia, progettato per supportare la gestione operativa di asset serializzati, stock consumabili, eventi e movimentazioni logistiche tra sedi, persone e attivita' esterne.
+
+Questo documento descrive il contesto architetturale, le convenzioni di sviluppo e le regole strategiche del progetto. Il dettaglio delle funzionalita' implementate e' documentato separatamente in `FEATURES.md`.
 
 ## Stack
 
 - Frontend: Next.js + React + Tailwind
 - Backend: FastAPI + SQLAlchemy
-- Database relazionale
-- Docker per sviluppo locale
+- Database: relazionale, attualmente usato tramite SQLAlchemy
+- Sviluppo locale: Docker Compose per database e API
+- Feedback UI: Sonner per toast notifications
+
+## Architecture
+
+Il progetto e' organizzato in due aree principali:
+
+- `frontend`: applicazione Next.js con App Router, componenti UI condivisi e client API centralizzato.
+- `backend`: applicazione FastAPI con modelli SQLAlchemy, endpoint REST e logica business.
+
+Il frontend comunica con il backend tramite funzioni tipizzate in `frontend/src/lib/api.ts`. Le pagine applicative mantengono lo stato locale necessario per filtri, form, selezioni e azioni utente.
+
+Il backend concentra attualmente modelli, endpoint e regole operative in `backend/app`, con creazione tabelle all'avvio e seed iniziale di sedi/categorie.
 
 ## Frontend UI System
 
-Componenti globali gia' creati:
+Il frontend utilizza un piccolo design system interno basato su componenti condivisi in `frontend/src/components`.
 
-- PageHeader
-- StatCard
-- SectionCard
-- PrimaryButton
-- SecondaryButton
-- DangerButton
-- StatusBadge
-- ConfirmDialog
+Principi:
+
+- componenti riutilizzabili per header, sezioni, statistiche, bottoni, badge, dialog e tabelle;
+- Tailwind come linguaggio di styling principale;
+- layout operativi, compatti e leggibili;
+- evitare duplicazioni di markup quando emerge un pattern stabile;
+- mantenere le pagine aderenti alle logiche esistenti senza refactor visuali gratuiti.
+
+I dettagli delle componenti disponibili sono elencati in `FEATURES.md`.
 
 ## UX Standards
 
-- Sonner configurato globalmente per toast notifications
-- Eliminazione progressiva di `alert()`
-- Eliminazione progressiva di `window.confirm()`
-- UI coerente e minimal
-- Palette neutra moderna
-
-## Refactor Completati
-
-Pagine gia' migrate al nuovo design system:
-
-- dashboard
-- items
-- assets
-- stocks
-- events
+- Usare Sonner per feedback utente non bloccanti.
+- Evitare nuovi usi di `alert()`.
+- Evitare nuovi usi di `window.confirm()`.
+- Usare `ConfirmDialog` per conferme distruttive o irreversibili.
+- Mantenere UI coerente, minimale e orientata al lavoro.
+- Preferire stati vuoti e loading state chiari.
+- Non introdurre librerie esterne se un componente interno e' sufficiente.
 
 ## Workflow Di Sviluppo
 
-- Codex esegue modifiche e refactor
-- Review manuale umana prima del push
-- Push Git manuale
-- Checkpoint Git frequenti dopo milestone funzionanti
+- Codex puo' eseguire modifiche, refactor e verifiche locali.
+- La review manuale umana precede sempre il push.
+- Il push Git resta manuale.
+- Usare checkpoint Git frequenti dopo milestone funzionanti.
+- Per modifiche frontend, verificare almeno TypeScript e lint mirato sui file coinvolti.
+- Per modifiche backend Python, verificare sintassi o avvio dove possibile.
+- Non cambiare API, modelli o logiche business durante refactor UI, salvo richiesta esplicita.
 
 ## Business Rules
 
-- Item non eliminabile se collegato ad asset o stockcard
-- Backend e frontend devono restare allineati sulle regole di eliminazione
-- Asset serializzati separati dagli stock consumabili
-- Eventi gestiscono materiale OUT / RETURNED / MISSING
+Regole di dominio da preservare durante ogni evoluzione:
 
-## Stato Attuale Progetto
+- Item serializzati e stock consumabili sono domini distinti.
+- Un item non deve essere eliminabile se collegato ad asset o stockcard.
+- Backend e frontend devono restare allineati sulle regole di eliminazione e protezione dati.
+- Gli asset serializzati hanno uno stato operativo e una sede corrente.
+- Gli eventi gestiscono materiale in uscita, rientrato o mancante.
+- Lo stock non deve andare sotto zero tramite operazioni ordinarie.
+- Le regole di sicurezza dati devono essere applicate backend-side anche quando il frontend le anticipa.
 
-- Design system frontend stabile
-- Toast system globale completato
-- ConfirmDialog globale introdotto
-- Refactor UI principale completato
+## Documentation Structure
 
-## Prossimi Step Candidati
+- `PROJECT_CONTEXT.md`: documento architetturale e strategico. Descrive stack, convenzioni, workflow, UX standards e regole di dominio da rispettare nelle evoluzioni.
+- `FEATURES.md`: inventario delle funzionalita' effettivamente implementate. Deve essere aggiornato quando vengono aggiunte, rimosse o completate feature applicative.
+- `ROADMAP.md` futura: documento di pianificazione. Dovra' contenere priorita', milestone, feature candidate, rischi e decisioni aperte.
 
-- Migrazione completa dei confirm dialog
-- Table component globale
-- Sistema permessi/login
-- Report PDF evento
-- QR code system avanzato
-- Alert incongruenze e ritardi
+## Current Direction
+
+Il progetto sta consolidando il frontend attorno a un design system interno e a pattern UX coerenti. Le prossime evoluzioni dovrebbero privilegiare:
+
+- riduzione della duplicazione UI;
+- mantenimento della coerenza tra frontend e backend;
+- miglioramento progressivo di reporting, permessi e workflow logistici;
+- documentazione aggiornata a ogni milestone significativa.
