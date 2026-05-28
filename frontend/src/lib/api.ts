@@ -20,6 +20,7 @@ export type Item = {
   technical_specs: string | null;
   is_serialized: boolean;
   asset_count: number | null;
+  stock_card_count: number | null;
 };
 
 export type Location = {

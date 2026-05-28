@@ -15,6 +15,7 @@ import SectionCard from "@/components/ui/SectionCard";
 import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import DangerButton from "@/components/ui/DangerButton";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
 export default function ItemsPage() {
@@ -25,6 +26,7 @@ export default function ItemsPage() {
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [creatingItem, setCreatingItem] = useState(false);
 
   const [editName, setEditName] = useState("");
@@ -91,6 +93,10 @@ export default function ItemsPage() {
     setEditSerialized(true);
   }
 
+  function itemHasLinkedRecords(item: Item) {
+    return (item.asset_count ?? 0) > 0 || (item.stock_card_count ?? 0) > 0;
+  }
+
   async function handleCreateItem(e: React.FormEvent) {
     e.preventDefault();
     if (!newItemName || !newItemCategoryId) return;
@@ -144,36 +150,70 @@ export default function ItemsPage() {
     }
   }
 
-  async function handleDelete(item: Item) {
-    const assetCount = item.asset_count ?? 0;
-
-    if (assetCount > 0) {
-      toast.error("Non puoi eliminare questo item perché ha asset collegati.");
+  function handleDelete(item: Item) {
+    if (itemHasLinkedRecords(item)) {
+      toast.error(
+        "Non puoi eliminare questo item perché ha asset o stockcard collegati."
+      );
       return;
     }
 
-    const confirmed = window.confirm(
-      `Vuoi eliminare definitivamente l'item "${item.name}"?`
-    );
+    setItemToDelete(item);
+  }
 
-    if (!confirmed) return;
+  function closeDeleteDialog() {
+    setItemToDelete(null);
+  }
 
-    setDeletingItemId(item.id);
+  function errorMessage(error: unknown, fallback: string) {
+    if (error instanceof Error) {
+      try {
+        const parsed = JSON.parse(error.message) as { detail?: string };
+        if (parsed.detail) return parsed.detail;
+      } catch {}
+
+      return error.message;
+    }
+
+    return fallback;
+  }
+
+  async function confirmDeleteItem() {
+    if (!itemToDelete) return;
+
+    setDeletingItemId(itemToDelete.id);
 
     try {
-      await deleteItem(item.id);
+      await deleteItem(itemToDelete.id);
       await loadData();
       toast.success("Item eliminato correttamente");
     } catch (error) {
-      console.error(error);
-      toast.error("Errore durante l'eliminazione dell'item.");
+      const message = errorMessage(
+        error,
+        "Errore durante l'eliminazione dell'item."
+      );
+      console.error(message);
+      toast.error(message);
+      return;
     } finally {
       setDeletingItemId(null);
+      closeDeleteDialog();
     }
   }
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <ConfirmDialog
+        open={itemToDelete !== null}
+        title="Eliminare item?"
+        description="Questa operazione non può essere annullata."
+        confirmLabel="Elimina"
+        cancelLabel="Annulla"
+        variant="danger"
+        onConfirm={confirmDeleteItem}
+        onCancel={closeDeleteDialog}
+      />
+
       <div className="mx-auto max-w-7xl">
         <PageHeader
           backHref="/"
@@ -428,7 +468,7 @@ export default function ItemsPage() {
                             </SecondaryButton>
                             <DangerButton
                               onClick={() => handleDelete(item)}
-                              disabled={(item.asset_count ?? 0) > 0 || deletingItemId === item.id}
+                              disabled={itemHasLinkedRecords(item) || deletingItemId === item.id}
                               className="px-4 py-2"
                             >
                               {deletingItemId === item.id ? "Elimino..." : "Elimina"}

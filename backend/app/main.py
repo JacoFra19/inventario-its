@@ -52,7 +52,11 @@ def generate_inventory_code(db: Session, location_code: str) -> str:
 
 
 # --- HELPER FOR ITEM SERIALIZATION ---
-def serialize_item(item: Item, asset_count: int | None = None):
+def serialize_item(
+    item: Item,
+    asset_count: int | None = None,
+    stock_card_count: int | None = None,
+):
     category = item.category
 
     return {
@@ -68,6 +72,7 @@ def serialize_item(item: Item, asset_count: int | None = None):
         "technical_specs": item.technical_specs,
         "is_serialized": item.is_serialized,
         "asset_count": asset_count,
+        "stock_card_count": stock_card_count,
     }
 
 # --- HELPER FOR ASSET LOGS ---
@@ -134,7 +139,7 @@ def create_item(
     db.commit()
     db.refresh(item)
     item.category = category
-    serialized = serialize_item(item, asset_count=0)
+    serialized = serialize_item(item, asset_count=0, stock_card_count=0)
     db.close()
     return serialized
 
@@ -148,7 +153,14 @@ def list_items():
 
     for item in items:
         asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
-        rows.append(serialize_item(item, asset_count=asset_count))
+        stock_card_count = db.query(StockCard).filter(StockCard.item_id == item.id).count()
+        rows.append(
+            serialize_item(
+                item,
+                asset_count=asset_count,
+                stock_card_count=stock_card_count,
+            )
+        )
     db.close()
     return rows
 
@@ -165,7 +177,12 @@ def get_item(item_id: int):
         raise HTTPException(status_code=404, detail=f"Item non trovato: {item_id}")
 
     asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
-    serialized = serialize_item(item, asset_count=asset_count)
+    stock_card_count = db.query(StockCard).filter(StockCard.item_id == item.id).count()
+    serialized = serialize_item(
+        item,
+        asset_count=asset_count,
+        stock_card_count=stock_card_count,
+    )
     db.close()
     return serialized
 
@@ -203,7 +220,12 @@ def update_item(
         db.refresh(item)
         item.category = category
         asset_count = db.query(Asset).filter(Asset.item_id == item.id).count()
-        serialized = serialize_item(item, asset_count=asset_count)
+        stock_card_count = db.query(StockCard).filter(StockCard.item_id == item.id).count()
+        serialized = serialize_item(
+            item,
+            asset_count=asset_count,
+            stock_card_count=stock_card_count,
+        )
         return serialized
     except Exception:
         db.rollback()
@@ -536,6 +558,7 @@ def get_asset_detail_by_code(inventory_code: str):
     serialized_item = None if not item else serialize_item(
         item,
         asset_count=db.query(Asset).filter(Asset.item_id == item.id).count(),
+        stock_card_count=db.query(StockCard).filter(StockCard.item_id == item.id).count(),
     )
 
     result = {
