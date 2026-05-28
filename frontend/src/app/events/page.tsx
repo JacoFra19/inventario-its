@@ -4,6 +4,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   Asset,
   Event,
@@ -198,10 +199,10 @@ export default function EventsPage() {
       setSelectedEventId(String(created.id));
       await loadData();
       await loadEventDetail(String(created.id));
-      alert("Evento creato correttamente");
+      toast.success("Evento creato correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante la creazione evento. Controlla console/backend.");
+      toast.error("Errore durante la creazione dell'evento.");
     } finally {
       setCreatingEvent(false);
     }
@@ -224,10 +225,10 @@ export default function EventsPage() {
       setAssetNotes("");
       await loadData();
       await loadEventDetail(String(selectedEvent.id));
-      alert("Asset collegato all'evento");
+      toast.success("Asset aggiunto all'evento");
     } catch (error) {
       console.error(error);
-      alert("Errore durante il collegamento asset. Potrebbe essere già collegato all'evento.");
+      toast.error("Errore durante l'aggiunta dell'asset all'evento.");
     } finally {
       setAddingMaterial(false);
     }
@@ -252,10 +253,10 @@ export default function EventsPage() {
       setStockNotes("");
       await loadData();
       await loadEventDetail(String(selectedEvent.id));
-      alert("Stock collegato all'evento e scaricato correttamente");
+      toast.success("Stock aggiunto all'evento");
     } catch (error) {
       console.error(error);
-      alert("Errore durante il collegamento stock. Controlla quantità disponibile.");
+      toast.error("Errore durante l'aggiunta dello stock all'evento.");
     } finally {
       setAddingMaterial(false);
     }
@@ -274,10 +275,10 @@ export default function EventsPage() {
 
       await loadData();
       await loadEventDetail(String(selectedEvent.id));
-      alert("Asset rientrato correttamente");
+      toast.success("Rientro asset registrato correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante il rientro asset.");
+      toast.error("Errore durante la registrazione del rientro asset.");
     } finally {
       setReturningMaterial(false);
     }
@@ -296,10 +297,10 @@ export default function EventsPage() {
 
       await loadData();
       await loadEventDetail(String(selectedEvent.id));
-      alert("Asset segnato come mancante");
+      toast.success("Asset segnato come mancante");
     } catch (error) {
       console.error(error);
-      alert("Errore durante l'aggiornamento asset.");
+      toast.error("Errore durante l'aggiornamento dell'asset.");
     } finally {
       setReturningMaterial(false);
     }
@@ -333,10 +334,10 @@ export default function EventsPage() {
 
       await loadData();
       await loadEventDetail(String(selectedEvent.id));
-      alert("Rientro stock registrato correttamente");
+      toast.success("Rientro registrato correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante il rientro stock.");
+      toast.error("Errore durante la registrazione del rientro.");
     } finally {
       setReturningMaterial(false);
     }
@@ -351,9 +352,9 @@ export default function EventsPage() {
       await closeEvent(selectedEvent.id);
       await loadData();
       await loadEventDetail(String(selectedEvent.id));
-      alert("Evento chiuso correttamente");
+      toast.success("Evento chiuso correttamente");
     } catch (error) {
-      alert(getReadableError(error));
+      toast.error(getReadableError(error));
     } finally {
       setEventActionLoading(false);
     }
@@ -374,9 +375,9 @@ export default function EventsPage() {
       await cancelEvent(selectedEvent.id);
       await loadData();
       await loadEventDetail(String(selectedEvent.id));
-      alert("Evento annullato correttamente");
+      toast.success("Evento annullato correttamente");
     } catch (error) {
-      alert(getReadableError(error));
+      toast.error(getReadableError(error));
     } finally {
       setEventActionLoading(false);
     }
