@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import SectionCard from "@/components/ui/SectionCard";
@@ -218,10 +219,10 @@ export default function StocksPage() {
       setNewStockNotes("");
       setSelectedStockId(String(created.id));
       await loadData();
-      alert("Scheda stock creata correttamente");
+      toast.success("Stockcard creata correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante la creazione dello stock. Potrebbe già esistere per questo item e questa sede.");
+      toast.error("Errore durante la creazione della stockcard.");
     } finally {
       setCreatingStock(false);
     }
@@ -245,10 +246,10 @@ export default function StocksPage() {
       setMovementQuantity("");
       setMovementNotes("");
       await refreshSelectedStock(selectedStock.id);
-      alert("Movimento stock registrato correttamente");
+      toast.success("Movimento registrato correttamente");
     } catch (error) {
       console.error(error);
-      alert("Errore durante il movimento stock. Controlla quantità disponibile o backend.");
+      toast.error("Errore durante la registrazione del movimento.");
     } finally {
       setMovementLoading(false);
     }
