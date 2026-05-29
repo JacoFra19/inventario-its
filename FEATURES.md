@@ -26,7 +26,8 @@ La dashboard principale (`frontend/src/app/page.tsx`) mostra una vista sintetica
 - asset in evento;
 - asset mancanti;
 - eventi aperti;
-- alert operativi aggregati dal backend.
+- alert operativi aggregati dal backend;
+- attività recenti aggregate dal backend.
 
 Sono presenti card di navigazione verso:
 
@@ -50,6 +51,17 @@ La dashboard include anche la sezione "Alert Operativi", con:
 - badge di severita';
 - empty state quando non sono presenti alert;
 - link rapidi verso asset, eventi o stock quando disponibili.
+
+La dashboard include inoltre la sezione "Attività recenti", con:
+
+- lista delle ultime operazioni ordinate per data decrescente;
+- massimo 20 attività nella prima versione;
+- visualizzazione compatta iniziale delle ultime 3 attività;
+- espansione con pulsante "Mostra tutte" / "Mostra meno";
+- badge/categoria per asset, stock ed eventi;
+- data e ora leggibili;
+- empty state quando non sono presenti attività;
+- attività cliccabili quando il backend fornisce un riferimento utile.
 
 ## Items
 
@@ -94,6 +106,7 @@ Funzionalita' presenti:
 - creazione asset partendo da item serializzato e sede;
 - generazione codice inventariale automatico per sede;
 - navigazione al dettaglio asset tramite riga tabella;
+- esportazione Excel completa degli asset;
 - toast Sonner per feedback creazione;
 - link verso catalogo item e scanner QR.
 
@@ -133,6 +146,7 @@ Endpoint backend principali:
 - `POST /assets/{asset_id}/restore`
 - `GET /assets/{asset_id}/history`
 - `GET /assets/{asset_id}/logs`
+- `GET /exports/assets.xlsx`
 
 ## Stock / Consumabili
 
@@ -149,6 +163,7 @@ Funzionalita' presenti:
 - creazione stockcard per item non serializzato;
 - registrazione movimenti stock;
 - visualizzazione storico movimenti della stockcard selezionata;
+- esportazione Excel completa di stockcard e movimenti stock;
 - toast Sonner per creazione stockcard e movimenti.
 
 Tipi movimento supportati:
@@ -171,6 +186,7 @@ Endpoint backend principali:
 - `POST /stocks`
 - `POST /stocks/{stock_id}/movement`
 - `GET /stocks/{stock_id}/history`
+- `GET /exports/stocks.xlsx`
 
 ## Eventi
 
@@ -191,6 +207,7 @@ Funzionalita' presenti:
 - chiusura evento;
 - annullamento evento con `ConfirmDialog`;
 - stampa report evento;
+- esportazione Excel completa di eventi, asset evento e stock evento;
 - tabelle report evento migrate su `DataTable`.
 
 Stati evento gestiti:
@@ -227,6 +244,7 @@ Endpoint backend principali:
 - `POST /events/{event_id}/stocks/{event_stock_id}/return`
 - `POST /events/{event_id}/close`
 - `POST /events/{event_id}/cancel`
+- `GET /exports/events.xlsx`
 
 ## QR Code
 
@@ -275,6 +293,66 @@ Frontend:
 - empty state positivo se non ci sono alert;
 - link rapidi verso asset, eventi o stock tramite riferimenti backend.
 
+## Attività Recenti
+
+Il sistema Attività Recenti e' implementato come aggregazione backend dei dati operativi gia' presenti.
+
+Backend:
+
+- endpoint `GET /dashboard/activity`;
+- lista ordinata per data decrescente;
+- limite iniziale a 20 attività;
+- ogni attività include `type`, `title`, `description`, `timestamp`, `category`, `severity` e `references`.
+
+Dati aggregati:
+
+- `AssetLog` per creazione asset, assegnazioni, mancanze, ripristini e log operativi asset;
+- `AssetMovement` per trasferimenti asset;
+- `StockMovement` per carichi, scarichi, rientri e correzioni stock;
+- `EventAsset` per asset aggiunti, rientrati o mancanti in evento;
+- `EventStock` per stock usciti per evento;
+- `Event` per eventi creati.
+
+Frontend:
+
+- sezione "Attività recenti" nella dashboard;
+- visualizzazione iniziale compatta limitata alle ultime 3 attività;
+- pulsante espandibile "Mostra tutte" / "Mostra meno" quando sono presenti piu' di 3 attività;
+- layout responsive coerente con il design system;
+- badge/categoria per distinguere asset, stock ed eventi;
+- timestamp formattato in italiano;
+- link verso asset, eventi o stock quando disponibili;
+- empty state se non sono presenti attività.
+
+## Export Excel
+
+Il primo sistema export Excel e' implementato per esportazioni complete, senza filtri avanzati.
+
+Backend:
+
+- generazione file `.xlsx` tramite endpoint dedicati;
+- risposta come download file;
+- formattazione base dei fogli con intestazioni, freeze pane, autofilter e larghezze colonne.
+
+Endpoint disponibili:
+
+- `GET /exports/assets.xlsx`;
+- `GET /exports/stocks.xlsx`;
+- `GET /exports/events.xlsx`.
+
+Contenuto export:
+
+- asset: fogli `Asset`, `Movimenti asset`, `Log asset`;
+- stock: fogli `Stockcard`, `Movimenti stock`;
+- eventi: fogli `Eventi`, `Asset eventi`, `Stock eventi`.
+
+Frontend:
+
+- pulsante `Esporta Excel` nella pagina asset;
+- pulsante `Esporta Excel` nella pagina stock;
+- pulsante `Esporta Excel` nella pagina eventi;
+- comportamento di download diretto tramite URL backend.
+
 ## UI / UX
 
 Sistema UI attualmente implementato:
@@ -308,6 +386,8 @@ Funzionalita' backend principali:
 - endpoint debug `GET /debug/routes`;
 - endpoint `GET /ping`;
 - endpoint alert operativi `GET /alerts`;
+- endpoint attività recenti `GET /dashboard/activity`;
+- endpoint export Excel `GET /exports/assets.xlsx`, `GET /exports/stocks.xlsx`, `GET /exports/events.xlsx`;
 - ricerca asset base con `GET /assets-search`.
 
 Modelli principali:

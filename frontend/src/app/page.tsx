@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   getAlerts,
   getAssets,
+  getDashboardActivity,
   getEvent,
   getEvents,
   getItems,
@@ -11,14 +12,16 @@ import StatusBadge from "@/components/StatusBadge";
 import StatCard from "@/components/ui/StatCard";
 import SectionCard from "@/components/ui/SectionCard";
 import SecondaryButton from "@/components/ui/SecondaryButton";
+import RecentActivitiesSection from "@/components/RecentActivitiesSection";
 
 export default async function Home() {
-  const [assets, stocks, events, items, alerts] = await Promise.all([
+  const [assets, stocks, events, items, alerts, activities] = await Promise.all([
     getAssets(),
     getStocks(),
     getEvents(),
     getItems(),
     getAlerts(),
+    getDashboardActivity(),
   ]);
 
   const inSede = assets.filter((asset) => asset.status === "IN_SEDE").length;
@@ -169,6 +172,8 @@ export default async function Home() {
           </div>
         )}
       </SectionCard>
+
+      <RecentActivitiesSection activities={activities} />
 
       <SectionCard
         className="mb-8"

@@ -71,6 +71,16 @@ export type AlertsResponse = {
   warning: OperationalAlert[];
 };
 
+export type DashboardActivity = {
+  type: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  category: string;
+  severity: string;
+  references: Record<string, string | number | null>;
+};
+
 export async function getAssets(): Promise<Asset[]> {
   const res = await fetch(`${API_BASE}/assets`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero degli asset");
@@ -132,6 +142,18 @@ export async function getAlerts(): Promise<AlertsResponse> {
 
   if (!res.ok) {
     throw new Error("Errore nel recupero degli alert operativi");
+  }
+
+  return res.json();
+}
+
+export async function getDashboardActivity(): Promise<DashboardActivity[]> {
+  const res = await fetch(`${API_BASE}/dashboard/activity`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero delle attività recenti");
   }
 
   return res.json();

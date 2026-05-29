@@ -147,6 +147,31 @@ def export_workbook(workbook, filename: str):
         },
     )
 
+
+def append_activity(
+    activities: list[dict],
+    activity_type: str,
+    title: str,
+    description: str,
+    timestamp: datetime | None,
+    category: str,
+    severity: str = "info",
+    references: dict | None = None,
+):
+    if not timestamp:
+        return
+
+    activities.append({
+        "type": activity_type,
+        "title": title,
+        "description": description,
+        "timestamp": timestamp,
+        "category": category,
+        "severity": severity,
+        "references": references or {},
+    })
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -282,6 +307,245 @@ def get_alerts():
             "critical": critical,
             "warning": warning,
         }
+    finally:
+        db.close()
+
+
+@app.get("/dashboard/activity")
+def get_dashboard_activity():
+    db = SessionLocal()
+
+    try:
+        activities = []
+
+        assets = {asset.id: asset for asset in db.query(Asset).all()}
+        items = {item.id: item for item in db.query(Item).all()}
+        locations = {location.id: location for location in db.query(Location).all()}
+        stocks = {stock.id: stock for stock in db.query(StockCard).all()}
+        events = {event.id: event for event in db.query(Event).all()}
+
+        asset_logs = (
+            db.query(AssetLog)
+            .order_by(AssetLog.created_at.desc())
+            .limit(40)
+            .all()
+        )
+
+        for log in asset_logs:
+            asset = assets.get(log.asset_id)
+            inventory_code = asset.inventory_code if asset else f"Asset ID {log.asset_id}"
+
+            severity = "info"
+            if log.action_type in {"MARK_MISSING", "EVENT_MISSING"}:
+                severity = "critical"
+            elif log.action_type in {"RESTORE", "EVENT_RETURN"}:
+                severity = "success"
+
+            append_activity(
+                activities,
+                log.action_type,
+                inventory_code,
+                log.description,
+                log.created_at,
+                "asset",
+                severity,
+                {
+                    "asset_id": log.asset_id,
+                    "inventory_code": asset.inventory_code if asset else None,
+                    "href": f"/assets/{asset.inventory_code}" if asset else None,
+                },
+            )
+
+        asset_movements = (
+            db.query(AssetMovement)
+            .order_by(AssetMovement.moved_at.desc())
+            .limit(40)
+            .all()
+        )
+
+        for movement in asset_movements:
+            asset = assets.get(movement.asset_id)
+            inventory_code = asset.inventory_code if asset else f"Asset ID {movement.asset_id}"
+            from_location = location_export_label(locations.get(movement.from_location_id)) or "Sede non registrata"
+            to_location = location_export_label(locations.get(movement.to_location_id)) or "Sede non registrata"
+
+            append_activity(
+                activities,
+                "ASSET_TRANSFER",
+                "Asset trasferito",
+                f"{inventory_code}: {from_location} -> {to_location}",
+                movement.moved_at,
+                "asset",
+                "info",
+                {
+                    "asset_id": movement.asset_id,
+                    "inventory_code": asset.inventory_code if asset else None,
+                    "href": f"/assets/{asset.inventory_code}" if asset else None,
+                },
+            )
+
+        stock_movements = (
+            db.query(StockMovement)
+            .order_by(StockMovement.created_at.desc())
+            .limit(40)
+            .all()
+        )
+
+        stock_labels = {
+            "LOAD": "Carico stock",
+            "UNLOAD": "Scarico stock",
+            "RETURN": "Rientro stock",
+            "ADJUST": "Correzione stock",
+        }
+
+        for movement in stock_movements:
+            stock = stocks.get(movement.stock_card_id)
+            item = items.get(stock.item_id) if stock else None
+            location = locations.get(stock.location_id) if stock else None
+            label = item_export_label(item) or f"Stockcard ID {movement.stock_card_id}"
+            location_label = location_export_label(location)
+
+            severity = "info"
+            if movement.movement_type == "UNLOAD":
+                severity = "warning"
+            elif movement.movement_type in {"LOAD", "RETURN"}:
+                severity = "success"
+
+            append_activity(
+                activities,
+                f"STOCK_{movement.movement_type}",
+                stock_labels.get(movement.movement_type, movement.movement_type),
+                f"{label} {f'({location_label})' if location_label else ''} - {movement.quantity} pezzi",
+                movement.created_at,
+                "stock",
+                severity,
+                {
+                    "stock_card_id": movement.stock_card_id,
+                    "href": "/stocks",
+                },
+            )
+
+        event_assets = (
+            db.query(EventAsset)
+            .order_by(EventAsset.created_at.desc())
+            .limit(40)
+            .all()
+        )
+
+        for event_asset in event_assets:
+            event = events.get(event_asset.event_id)
+            asset = assets.get(event_asset.asset_id)
+            event_name = event.name if event else f"Evento ID {event_asset.event_id}"
+            inventory_code = asset.inventory_code if asset else f"Asset ID {event_asset.asset_id}"
+
+            append_activity(
+                activities,
+                "EVENT_ASSET_OUT",
+                "Asset aggiunto a evento",
+                f"{inventory_code} -> {event_name}",
+                event_asset.created_at,
+                "event",
+                "warning",
+                {
+                    "event_id": event_asset.event_id,
+                    "asset_id": event_asset.asset_id,
+                    "inventory_code": asset.inventory_code if asset else None,
+                    "href": f"/events?eventId={event_asset.event_id}",
+                },
+            )
+
+            if event_asset.returned_at:
+                append_activity(
+                    activities,
+                    "EVENT_ASSET_RETURN",
+                    "Asset rientrato da evento",
+                    f"{inventory_code} <- {event_name}",
+                    event_asset.returned_at,
+                    "event",
+                    "success",
+                    {
+                        "event_id": event_asset.event_id,
+                        "asset_id": event_asset.asset_id,
+                        "inventory_code": asset.inventory_code if asset else None,
+                        "href": f"/events?eventId={event_asset.event_id}",
+                    },
+                )
+
+            if event_asset.status == "MISSING":
+                append_activity(
+                    activities,
+                    "EVENT_ASSET_MISSING",
+                    "Asset mancante in evento",
+                    f"{inventory_code} - {event_name}",
+                    event_asset.created_at,
+                    "event",
+                    "critical",
+                    {
+                        "event_id": event_asset.event_id,
+                        "asset_id": event_asset.asset_id,
+                        "inventory_code": asset.inventory_code if asset else None,
+                        "href": f"/events?eventId={event_asset.event_id}",
+                    },
+                )
+
+        event_stocks = (
+            db.query(EventStock)
+            .order_by(EventStock.created_at.desc())
+            .limit(40)
+            .all()
+        )
+
+        for event_stock in event_stocks:
+            event = events.get(event_stock.event_id)
+            stock = stocks.get(event_stock.stock_card_id)
+            item = items.get(stock.item_id) if stock else None
+            event_name = event.name if event else f"Evento ID {event_stock.event_id}"
+            item_label = item_export_label(item) or f"Stockcard ID {event_stock.stock_card_id}"
+
+            append_activity(
+                activities,
+                "EVENT_STOCK_OUT",
+                "Stock uscito per evento",
+                f"{item_label} -> {event_name} ({event_stock.quantity_out} pezzi)",
+                event_stock.created_at,
+                "event",
+                "warning",
+                {
+                    "event_id": event_stock.event_id,
+                    "stock_card_id": event_stock.stock_card_id,
+                    "href": f"/events?eventId={event_stock.event_id}",
+                },
+            )
+
+        recent_events = (
+            db.query(Event)
+            .order_by(Event.created_at.desc())
+            .limit(40)
+            .all()
+        )
+
+        for event in recent_events:
+            append_activity(
+                activities,
+                "EVENT_CREATE",
+                "Evento creato",
+                event.name,
+                event.created_at,
+                "event",
+                "info",
+                {
+                    "event_id": event.id,
+                    "href": f"/events?eventId={event.id}",
+                },
+            )
+
+        sorted_activities = sorted(
+            activities,
+            key=lambda activity: activity["timestamp"],
+            reverse=True,
+        )
+
+        return sorted_activities[:20]
     finally:
         db.close()
 
