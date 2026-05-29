@@ -34,6 +34,7 @@ const movementLabels: Record<MovementType, string> = {
 export default function StocksPage() {
   const searchParams = useSearchParams();
   const lowStockFromUrl = searchParams.get("lowStock") === "1";
+  const locationFromUrl = searchParams.get("locationId");
   const [stocks, setStocks] = useState<StockCard[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -65,6 +66,12 @@ export default function StocksPage() {
       setLowStockOnly(true);
     }
   }, [lowStockFromUrl]);
+
+  useEffect(() => {
+    if (locationFromUrl) {
+      setLocationFilter(locationFromUrl);
+    }
+  }, [locationFromUrl]);
 
   async function loadData() {
     const [stocksData, itemsData, locationsData] = await Promise.all([
@@ -359,7 +366,14 @@ export default function StocksPage() {
             <select
               className="w-full rounded-xl border p-3"
               value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
+              onChange={(e) => {
+                setLocationFilter(e.target.value);
+                window.history.replaceState(
+                  null,
+                  "",
+                  e.target.value === "ALL" ? "/stocks" : `/stocks?locationId=${e.target.value}`
+                );
+              }}
             >
               <option value="ALL">Tutte le sedi</option>
               {locations.map((location) => (

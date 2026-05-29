@@ -1144,6 +1144,69 @@ def get_dashboard_activity():
         db.close()
 
 
+@app.get("/dashboard/locations")
+def get_dashboard_locations():
+    db = SessionLocal()
+
+    try:
+        locations = db.query(Location).order_by(Location.name.asc()).all()
+        result = []
+
+        for location in locations:
+            assets = db.query(Asset).filter(Asset.current_location_id == location.id).all()
+            stockcards = db.query(StockCard).filter(StockCard.location_id == location.id).all()
+
+            asset_total = len(assets)
+            asset_in_location = sum(1 for asset in assets if asset.status == "IN_SEDE")
+            asset_assigned = sum(1 for asset in assets if asset.status == "ASSEGNATO")
+            asset_in_event = sum(1 for asset in assets if asset.status == "IN_EVENTO")
+            asset_missing = sum(1 for asset in assets if asset.status == "MANCANTE")
+            stock_quantity_total = sum(stock.quantity for stock in stockcards)
+            low_stock_count = sum(
+                1 for stock in stockcards if stock.quantity <= stock.min_threshold
+            )
+
+            location_key = normalize_import_key(location.code)
+            location_name_key = normalize_import_key(location.name)
+            open_events_count = 0
+            for event in db.query(Event).filter(Event.status == "OPEN").all():
+                event_location = normalize_import_key(event.location)
+                if event_location and (
+                    location_key in event_location
+                    or location_name_key in event_location
+                    or event_location in location_name_key
+                ):
+                    open_events_count += 1
+
+            alert_count = asset_missing + low_stock_count + open_events_count
+            alert_level = "none"
+            if asset_missing > 0:
+                alert_level = "critical"
+            elif low_stock_count > 0 or open_events_count > 0:
+                alert_level = "warning"
+
+            result.append({
+                "location_id": location.id,
+                "code": location.code,
+                "name": location.name,
+                "asset_total": asset_total,
+                "asset_in_location": asset_in_location,
+                "asset_assigned": asset_assigned,
+                "asset_in_event": asset_in_event,
+                "asset_missing": asset_missing,
+                "stockcard_count": len(stockcards),
+                "stock_quantity_total": stock_quantity_total,
+                "low_stock_count": low_stock_count,
+                "open_events_count": open_events_count,
+                "alert_count": alert_count,
+                "alert_level": alert_level,
+            })
+
+        return result
+    finally:
+        db.close()
+
+
 @app.get("/search")
 def global_search(q: str = ""):
     query = q.strip()

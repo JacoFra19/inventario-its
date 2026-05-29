@@ -29,6 +29,7 @@ La dashboard principale (`frontend/src/app/page.tsx`) mostra una vista sintetica
 - asset mancanti;
 - eventi aperti;
 - ricerca globale su asset, item, stock ed eventi;
+- panoramica operativa sedi aggregata dal backend;
 - alert operativi aggregati dal backend;
 - attività recenti aggregate dal backend.
 
@@ -77,6 +78,17 @@ La dashboard include una prima versione di "Ricerca globale", con:
 - massimo 5 risultati per categoria;
 - stati loading, empty state ed errore;
 - risultati cliccabili verso le pagine frontend utili.
+
+La dashboard include la sezione "Panoramica Sedi", con:
+
+- card compatte per ogni sede ITS;
+- metriche asset totali, assegnati, in evento e mancanti;
+- quantità stock disponibile;
+- stock sotto soglia;
+- conteggio eventi aperti collegati alla sede quando ricavabile dal testo luogo evento;
+- livello sintetico criticità `none`, `warning` o `critical`;
+- link rapidi verso asset filtrati per sede, stock filtrati per sede ed eventi;
+- visualizzazione iniziale compatta con espansione se le sedi sono molte.
 
 ## Items
 
@@ -461,6 +473,31 @@ Frontend:
 - gestione di stato neutro, loading, empty state ed errore;
 - link diretti verso dettaglio asset, catalogo item, stock ed evento selezionato.
 
+## Panoramica Sedi
+
+La Panoramica Sedi e' una prima mini mappa operativa delle sedi ITS nella dashboard.
+
+Backend:
+
+- endpoint `GET /dashboard/locations`;
+- aggregazione stabile ordinata per nome sede;
+- conteggio asset totali per sede;
+- conteggio asset `IN_SEDE`, `ASSEGNATO`, `IN_EVENTO`, `MANCANTE`;
+- conteggio stockcard per sede;
+- somma quantità stock disponibile;
+- conteggio stock sotto soglia;
+- conteggio eventi aperti collegati alla sede quando `event.location` contiene codice o nome sede;
+- livello criticità sintetico `none`, `warning` o `critical`.
+
+Frontend:
+
+- sezione "Panoramica Sedi" nella dashboard;
+- card responsive e compatte per ogni sede;
+- badge criticità per sedi con asset mancanti, stock sotto soglia o eventi aperti collegati;
+- link rapidi a `/assets?locationId=...`, `/stocks?locationId=...` ed eventi;
+- supporto ai filtri `locationId` nelle pagine asset e stock;
+- sezione espandibile quando le sedi superano la visualizzazione compatta iniziale.
+
 ## Export Excel
 
 Il primo sistema export Excel e' implementato per esportazioni complete, senza filtri avanzati.
@@ -524,6 +561,7 @@ Funzionalita' backend principali:
 - endpoint `GET /ping`;
 - endpoint alert operativi `GET /alerts`;
 - endpoint attività recenti `GET /dashboard/activity`;
+- endpoint panoramica sedi `GET /dashboard/locations`;
 - endpoint export Excel `GET /exports/assets.xlsx`, `GET /exports/stocks.xlsx`, `GET /exports/events.xlsx`;
 - endpoint import Excel `GET /imports/template.xlsx`, `POST /imports/preview`, `POST /imports/commit`;
 - endpoint ricerca globale `GET /search?q=...`;

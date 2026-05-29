@@ -3,6 +3,7 @@ import {
   getAlerts,
   getAssets,
   getDashboardActivity,
+  getDashboardLocations,
   getEvent,
   getEvents,
   getItems,
@@ -14,15 +15,17 @@ import SectionCard from "@/components/ui/SectionCard";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import RecentActivitiesSection from "@/components/RecentActivitiesSection";
 import GlobalSearch from "@/components/GlobalSearch";
+import LocationsOverviewSection from "@/components/LocationsOverviewSection";
 
 export default async function Home() {
-  const [assets, stocks, events, items, alerts, activities] = await Promise.all([
+  const [assets, stocks, events, items, alerts, activities, locationOverview] = await Promise.all([
     getAssets(),
     getStocks(),
     getEvents(),
     getItems(),
     getAlerts(),
     getDashboardActivity(),
+    getDashboardLocations(),
   ]);
 
   const inSede = assets.filter((asset) => asset.status === "IN_SEDE").length;
@@ -175,6 +178,8 @@ export default async function Home() {
           </div>
         )}
       </SectionCard>
+
+      <LocationsOverviewSection locations={locationOverview} />
 
       <RecentActivitiesSection activities={activities} />
 

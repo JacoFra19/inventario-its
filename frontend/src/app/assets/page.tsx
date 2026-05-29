@@ -22,6 +22,7 @@ import {
 export default function AssetsPage() {
   const searchParams = useSearchParams();
   const statusFromUrl = searchParams.get("status");
+  const locationFromUrl = searchParams.get("locationId");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -39,6 +40,12 @@ export default function AssetsPage() {
       setStatusFilter(statusFromUrl);
     }
   }, [statusFromUrl]);
+
+  useEffect(() => {
+    if (locationFromUrl) {
+      setLocationFilter(locationFromUrl);
+    }
+  }, [locationFromUrl]);
 
   async function loadData() {
     const [assetsData, itemsData, locationsData] = await Promise.all([
@@ -376,7 +383,14 @@ export default function AssetsPage() {
             <select
               className="w-full rounded-xl border p-3 shadow-sm"
               value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
+              onChange={(e) => {
+                setLocationFilter(e.target.value);
+                window.history.replaceState(
+                  null,
+                  "",
+                  e.target.value === "ALL" ? "/assets" : `/assets?locationId=${e.target.value}`
+                );
+              }}
             >
               <option value="ALL">Tutte le sedi</option>
               {locations.map((location) => (

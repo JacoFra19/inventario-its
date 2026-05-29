@@ -106,6 +106,23 @@ export type DashboardActivity = {
   references: Record<string, string | number | null>;
 };
 
+export type DashboardLocation = {
+  location_id: number;
+  code: string;
+  name: string;
+  asset_total: number;
+  asset_in_location: number;
+  asset_assigned: number;
+  asset_in_event: number;
+  asset_missing: number;
+  stockcard_count: number;
+  stock_quantity_total: number;
+  low_stock_count: number;
+  open_events_count: number;
+  alert_count: number;
+  alert_level: "none" | "warning" | "critical";
+};
+
 export type GlobalSearchResult = {
   type: "asset" | "item" | "stock" | "event";
   title: string;
@@ -340,6 +357,18 @@ export async function getDashboardActivity(): Promise<DashboardActivity[]> {
 
   if (!res.ok) {
     throw new Error("Errore nel recupero delle attività recenti");
+  }
+
+  return res.json();
+}
+
+export async function getDashboardLocations(): Promise<DashboardLocation[]> {
+  const res = await fetch(`${API_BASE}/dashboard/locations`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero della panoramica sedi");
   }
 
   return res.json();
