@@ -25,7 +25,8 @@ La dashboard principale (`frontend/src/app/page.tsx`) mostra una vista sintetica
 - stock sotto soglia minima;
 - asset in evento;
 - asset mancanti;
-- eventi aperti.
+- eventi aperti;
+- alert operativi aggregati dal backend.
 
 Sono presenti card di navigazione verso:
 
@@ -42,6 +43,13 @@ La dashboard mostra anche gli eventi recenti con indicatori su:
 - stock da rientrare;
 - asset mancanti;
 - stato evento.
+
+La dashboard include anche la sezione "Alert Operativi", con:
+
+- visualizzazione separata per severita' `critical` e `warning`;
+- badge di severita';
+- empty state quando non sono presenti alert;
+- link rapidi verso asset, eventi o stock quando disponibili.
 
 ## Items
 
@@ -240,6 +248,33 @@ Frontend:
 - estrazione codice asset da testo o URL scansionato;
 - navigazione automatica a `/assets/{inventory_code}`.
 
+## Alert Operativi
+
+Il sistema Alert Operativi e' implementato in prima fase con aggregazione backend e visualizzazione nella dashboard.
+
+Backend:
+
+- endpoint `GET /alerts`;
+- risposta separata in `critical` e `warning`;
+- ogni alert include `type`, `message` e `references`;
+- riferimenti utili con id, codici e link rapidi quando disponibili.
+
+Alert attualmente implementati:
+
+- asset in stato `MANCANTE` (`critical`);
+- eventi `OPEN` con asset ancora fuori (`critical`);
+- stock sotto soglia minima (`warning`);
+- eventi aperti da oltre 7 giorni (`warning`).
+
+Frontend:
+
+- sezione "Alert Operativi" nella dashboard;
+- card rosse per alert `critical`;
+- card arancioni per alert `warning`;
+- badge severita' coerenti con il design system;
+- empty state positivo se non ci sono alert;
+- link rapidi verso asset, eventi o stock tramite riferimenti backend.
+
 ## UI / UX
 
 Sistema UI attualmente implementato:
@@ -272,6 +307,7 @@ Funzionalita' backend principali:
 - healthcheck `GET /health`;
 - endpoint debug `GET /debug/routes`;
 - endpoint `GET /ping`;
+- endpoint alert operativi `GET /alerts`;
 - ricerca asset base con `GET /assets-search`.
 
 Modelli principali:
