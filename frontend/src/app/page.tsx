@@ -16,6 +16,7 @@ import SecondaryButton from "@/components/ui/SecondaryButton";
 import RecentActivitiesSection from "@/components/RecentActivitiesSection";
 import GlobalSearch from "@/components/GlobalSearch";
 import LocationsOverviewSection from "@/components/LocationsOverviewSection";
+import LocationsMapSection from "@/components/LocationsMapSection";
 
 export default async function Home() {
   const [assets, stocks, events, items, alerts, activities, locationOverview] = await Promise.all([
@@ -178,6 +179,8 @@ export default async function Home() {
           </div>
         )}
       </SectionCard>
+
+      <LocationsMapSection locations={locationOverview} />
 
       <LocationsOverviewSection locations={locationOverview} />
 

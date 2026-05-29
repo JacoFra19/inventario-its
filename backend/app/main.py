@@ -181,6 +181,25 @@ def empty_search_response(query: str):
     }
 
 
+LOCATION_COORDINATES = {
+    "BA1": {"lat": 41.1171, "lng": 16.8719},
+    "BA2": {"lat": 41.1200, "lng": 16.8650},
+    "BR1": {"lat": 40.6327, "lng": 17.9418},
+    "CO1": {"lat": 40.9688, "lng": 17.1136},
+    "FA1": {"lat": 40.8346, "lng": 17.3597},
+    "GR1": {"lat": 40.8173, "lng": 16.4166},
+    "LE1": {"lat": 40.3515, "lng": 18.1750},
+    "LE2": {"lat": 40.3510, "lng": 18.1720},
+    "MA1": {"lat": 40.3993, "lng": 17.6335},
+    "MF1": {"lat": 41.6307, "lng": 15.9188},
+    "MO1": {"lat": 39.8490, "lng": 18.3127},
+    "PO1": {"lat": 40.0524, "lng": 18.3775},
+    "PU1": {"lat": 40.8491, "lng": 17.1213},
+    "TA1": {"lat": 40.4644, "lng": 17.2470},
+    "TR1": {"lat": 41.2775, "lng": 16.4101},
+}
+
+
 IMPORT_SHEET_NAME = "Import"
 IMPORT_MAX_ROWS = 1000
 IMPORT_COLUMNS = [
@@ -1153,6 +1172,7 @@ def get_dashboard_locations():
         result = []
 
         for location in locations:
+            coordinates = LOCATION_COORDINATES.get(location.code)
             assets = db.query(Asset).filter(Asset.current_location_id == location.id).all()
             stockcards = db.query(StockCard).filter(StockCard.location_id == location.id).all()
 
@@ -1189,6 +1209,8 @@ def get_dashboard_locations():
                 "location_id": location.id,
                 "code": location.code,
                 "name": location.name,
+                "lat": coordinates["lat"] if coordinates else None,
+                "lng": coordinates["lng"] if coordinates else None,
                 "asset_total": asset_total,
                 "asset_in_location": asset_in_location,
                 "asset_assigned": asset_assigned,

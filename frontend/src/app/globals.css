@@ -24,3 +24,119 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.map-location-marker,
+.map-location-cluster {
+  align-items: center;
+  border: 3px solid #ffffff;
+  border-radius: 9999px;
+  box-shadow: 0 12px 28px rgb(15 23 42 / 0.22);
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 0.7rem;
+  font-weight: 800;
+  height: 42px;
+  justify-content: center;
+  line-height: 1;
+  min-width: 42px;
+  padding: 0 0.35rem;
+  text-align: center;
+  transition:
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.map-location-marker:hover,
+.map-location-cluster:hover {
+  box-shadow: 0 16px 34px rgb(15 23 42 / 0.3);
+  transform: translateY(-1px);
+}
+
+.map-location-marker--normal {
+  background: #2563eb;
+}
+
+.map-location-marker--warning {
+  background: #ea580c;
+}
+
+.map-location-marker--critical {
+  background: #dc2626;
+}
+
+.map-location-cluster {
+  background: #111827;
+  font-size: 0.9rem;
+  height: 46px;
+  min-width: 46px;
+}
+
+.map-location-popup {
+  color: #111827;
+  font-size: 0.875rem;
+  min-width: 14rem;
+}
+
+.map-location-popup-code {
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.map-location-popup-title {
+  color: #030712;
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 0.25rem 0 0;
+}
+
+.map-location-popup-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.75rem;
+}
+
+.map-location-popup-label {
+  color: #6b7280;
+  margin: 0;
+}
+
+.map-location-popup-value {
+  color: #111827;
+  font-weight: 700;
+  margin: 0.125rem 0 0;
+}
+
+.map-location-popup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.map-location-popup-link {
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+  color: #111827;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.375rem 0.625rem;
+  text-decoration: none;
+}
+
+.map-location-popup-link:hover {
+  background: #e5e7eb;
+}
+
+.map-location-popup-link--primary {
+  background: #111827;
+  color: #ffffff;
+}
+
+.map-location-popup-link--primary:hover {
+  background: #030712;
+}

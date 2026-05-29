@@ -110,6 +110,8 @@ export type DashboardLocation = {
   location_id: number;
   code: string;
   name: string;
+  lat: number | null;
+  lng: number | null;
   asset_total: number;
   asset_in_location: number;
   asset_assigned: number;

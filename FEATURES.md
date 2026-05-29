@@ -90,6 +90,17 @@ La dashboard include la sezione "Panoramica Sedi", con:
 - link rapidi verso asset filtrati per sede, stock filtrati per sede ed eventi;
 - visualizzazione iniziale compatta con espansione se le sedi sono molte.
 
+La dashboard include inoltre la sezione "Mappa Sedi", con:
+
+- mappa OpenStreetMap centrata sulla Puglia;
+- marker per ogni sede con coordinate disponibili;
+- clustering/spiderfy dei marker vicini o sovrapposti, utile per sedi nella stessa citta';
+- marker colorati per livello criticità;
+- tooltip con codice e nome sede;
+- popup con riepilogo asset, stock, mancanti, sotto soglia ed eventi aperti;
+- link rapidi da popup verso asset, stock ed eventi;
+- caricamento client-only per evitare problemi SSR/hydration.
+
 ## Items
 
 La pagina item (`frontend/src/app/items/page.tsx`) implementa il catalogo tecnico delle tipologie bene.
@@ -497,6 +508,37 @@ Frontend:
 - link rapidi a `/assets?locationId=...`, `/stocks?locationId=...` ed eventi;
 - supporto ai filtri `locationId` nelle pagine asset e stock;
 - sezione espandibile quando le sedi superano la visualizzazione compatta iniziale.
+
+## Mappa Sedi Puglia
+
+La Mappa Sedi Puglia evolve la panoramica sedi in una visualizzazione geografica interattiva.
+
+Backend:
+
+- riusa `GET /dashboard/locations`;
+- aggiunge coordinate statiche approssimative `lat`/`lng` per le sedi ITS note;
+- non modifica schema database;
+- mantiene le metriche operative gia' presenti nella panoramica sedi.
+
+Frontend:
+
+- sezione "Mappa Sedi" nella dashboard;
+- implementazione con `leaflet` e `react-leaflet`;
+- CSS Leaflet importato globalmente in `frontend/src/app/layout.tsx`;
+- componente mappa caricato solo lato client tramite dynamic import;
+- mappa centrata sulla Puglia;
+- marker circolari colorati per `none`, `warning`, `critical`;
+- cluster interattivi con conteggio e separazione/spiderfy dei marker sovrapposti o molto vicini;
+- popup con nome sede, codice sede, asset totali, stock disponibile, asset mancanti, stock sotto soglia, eventi aperti e criticita';
+- link rapidi a `/assets?locationId=...`, `/stocks?locationId=...` ed eventi.
+
+Dipendenze frontend:
+
+- `leaflet`;
+- `leaflet.markercluster`;
+- `react-leaflet`;
+- `@types/leaflet`;
+- `@types/leaflet.markercluster`.
 
 ## Export Excel
 
