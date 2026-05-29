@@ -5,6 +5,7 @@ export type Asset = {
   inventory_code: string;
   item_id: number;
   current_location_id: number;
+  assignee_id: number | null;
   status: string;
   assigned_to: string | null;
   notes: string | null;
@@ -38,6 +39,30 @@ export type AssetDetail = {
   asset: Asset;
   item: Item | null;
   location: Location | null;
+  assignee: Assignee | null;
+};
+
+export type AssigneeType = "PERSON" | "DEPARTMENT" | "OTHER";
+
+export type AssigneeAsset = {
+  id: number;
+  inventory_code: string;
+  status: string;
+  assigned_to: string | null;
+  notes: string | null;
+};
+
+export type Assignee = {
+  id: number;
+  name: string;
+  type: AssigneeType;
+  email: string | null;
+  phone: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  asset_count: number | null;
+  assets?: AssigneeAsset[];
 };
 
 export type StockCard = {
@@ -138,6 +163,106 @@ export async function getItem(itemId: number): Promise<Item> {
 export async function getLocations(): Promise<Location[]> {
   const res = await fetch(`${API_BASE}/locations`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero delle sedi");
+  return res.json();
+}
+
+export async function getAssignees(): Promise<Assignee[]> {
+  const res = await fetch(`${API_BASE}/assignees`, { cache: "no-store" });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero degli assegnatari");
+  }
+
+  return res.json();
+}
+
+export async function getAssignee(assigneeId: number): Promise<Assignee> {
+  const res = await fetch(`${API_BASE}/assignees/${assigneeId}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function createAssignee(input: {
+  name: string;
+  type: AssigneeType;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  isActive?: boolean;
+}): Promise<Assignee> {
+  const res = await fetch(`${API_BASE}/assignees`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: input.name,
+      type: input.type,
+      email: input.email || null,
+      phone: input.phone || null,
+      notes: input.notes || null,
+      is_active: input.isActive ?? true,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function updateAssignee(input: {
+  assigneeId: number;
+  name: string;
+  type: AssigneeType;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  isActive: boolean;
+}): Promise<Assignee> {
+  const res = await fetch(`${API_BASE}/assignees/${input.assigneeId}`, {
+    method: "PUT",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: input.name,
+      type: input.type,
+      email: input.email || null,
+      phone: input.phone || null,
+      notes: input.notes || null,
+      is_active: input.isActive,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function deleteAssignee(
+  assigneeId: number
+): Promise<{ deleted: boolean; deactivated: boolean; assignee_id: number; detail?: string }> {
+  const res = await fetch(`${API_BASE}/assignees/${assigneeId}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
   return res.json();
 }
 
@@ -463,7 +588,8 @@ export async function getAssetLogs(assetId: number): Promise<AssetLog[]> {
 
 export async function assignAsset(input: {
   assetId: number;
-  assignedTo: string;
+  assignedTo?: string;
+  assigneeId?: number;
   notes?: string;
 }) {
   const res = await fetch(
@@ -475,7 +601,8 @@ export async function assignAsset(input: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        assigned_to: input.assignedTo,
+        assigned_to: input.assignedTo ?? null,
+        assignee_id: input.assigneeId ?? null,
         notes: input.notes ?? null,
       }),
     }

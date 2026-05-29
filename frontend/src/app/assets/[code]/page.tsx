@@ -7,10 +7,12 @@ import {
   getAssetDetail,
   getAssetHistory,
   getAssetLogs,
+  getAssignees,
   markAssetMissing,
   restoreAsset,
   transferAsset,
   unassignAsset,
+  type Assignee,
   type AssetDetail,
   type AssetLog,
   type AssetTransferMovement,
@@ -24,6 +26,7 @@ type Asset = {
   id: number;
   inventory_code: string;
   current_location_id: number;
+  assignee_id: number | null;
   status: string;
   assigned_to: string | null;
   notes: string | null;
@@ -46,11 +49,13 @@ type ConfirmAction = "missing" | "restore" | null;
 export default function AssetDetailPage({ params }: Props) {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [assignees, setAssignees] = useState<Assignee[]>([]);
   const [assetDetail, setAssetDetail] = useState<AssetDetail | null>(null);
   const [history, setHistory] = useState<AssetTransferMovement[]>([]);
   const [logs, setLogs] = useState<AssetLog[]>([]);
   const [selectedLocation, setSelectedLocation] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [selectedAssigneeId, setSelectedAssigneeId] = useState("");
+  const [assignmentNotes, setAssignmentNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
   const [missingLoading, setMissingLoading] = useState(false);
@@ -61,19 +66,21 @@ export default function AssetDetailPage({ params }: Props) {
     async function load() {
       const { code } = await params;
 
-      const [detailData, locationsRes] = await Promise.all([
+      const [detailData, locationsRes, assigneesData] = await Promise.all([
         getAssetDetail(code),
         fetch(`http://localhost:8000/locations`, {
           cache: "no-store",
         }),
+        getAssignees(),
       ]);
 
       const locationsData = await locationsRes.json();
 
       setAssetDetail(detailData);
       setAsset(detailData.asset);
-      setAssignedTo(detailData.asset.assigned_to ?? "");
+      setSelectedAssigneeId(detailData.asset.assignee_id ? String(detailData.asset.assignee_id) : "");
       setLocations(locationsData);
+      setAssignees(assigneesData.filter((assignee) => assignee.is_active));
 
       const [historyData, logsData] = await Promise.all([
         getAssetHistory(detailData.asset.id),
@@ -90,7 +97,7 @@ export default function AssetDetailPage({ params }: Props) {
     const detailData = await getAssetDetail(inventoryCode);
     setAssetDetail(detailData);
     setAsset(detailData.asset);
-    setAssignedTo(detailData.asset.assigned_to ?? "");
+    setSelectedAssigneeId(detailData.asset.assignee_id ? String(detailData.asset.assignee_id) : "");
     return detailData.asset;
   }
 
@@ -126,18 +133,20 @@ export default function AssetDetailPage({ params }: Props) {
   }
 
   async function handleAssign() {
-    if (!asset || !assignedTo.trim()) return;
+    if (!asset || !selectedAssigneeId) return;
 
     setAssignLoading(true);
 
     try {
       const updatedAsset = await assignAsset({
         assetId: asset.id,
-        assignedTo: assignedTo.trim(),
+        assigneeId: Number(selectedAssigneeId),
+        notes: assignmentNotes.trim() || undefined,
       });
 
       const refreshedAsset = await refreshAssetDetail(updatedAsset.inventory_code);
       await refreshAssetLogs(refreshedAsset.id);
+      setAssignmentNotes("");
       toast.success("Asset assegnato correttamente");
     } catch (error) {
       console.error(error);
@@ -233,6 +242,7 @@ export default function AssetDetailPage({ params }: Props) {
   }
 
   const item = assetDetail?.item;
+  const currentAssignee = assetDetail?.assignee;
 
   if (!asset) {
     return <main className="p-10">Caricamento asset...</main>;
@@ -345,8 +355,18 @@ export default function AssetDetailPage({ params }: Props) {
           <div className="rounded-xl border p-4">
             <p className="text-sm text-gray-500">Assegnato a</p>
             <p className="mt-1 font-semibold">
-              {asset.assigned_to ?? "-"}
+              {currentAssignee?.name ?? asset.assigned_to ?? "-"}
             </p>
+            {currentAssignee && (
+              <p className="mt-1 text-xs text-gray-500">
+                {currentAssignee.type}
+              </p>
+            )}
+            {!currentAssignee && asset.assigned_to && (
+              <p className="mt-1 text-xs text-orange-600">
+                Assegnazione testuale legacy
+              </p>
+            )}
           </div>
         </div>
 
@@ -454,20 +474,33 @@ export default function AssetDetailPage({ params }: Props) {
 
         <div className="mt-8 rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm">
           <h2 className="mb-4 text-xl font-bold">
-            Assegnazione a personale
+            Assegnazione
           </h2>
 
-          <div className="flex flex-col gap-4 md:flex-row">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto]">
+            <select
+              className="rounded-xl border p-3"
+              value={selectedAssigneeId}
+              onChange={(e) => setSelectedAssigneeId(e.target.value)}
+            >
+              <option value="">Seleziona assegnatario</option>
+              {assignees.map((assignee) => (
+                <option key={assignee.id} value={assignee.id}>
+                  {assignee.name} - {assignee.type}
+                </option>
+              ))}
+            </select>
+
             <input
-              className="flex-1 rounded-xl border p-3"
-              placeholder="Es. Segreteria, Tutor sede, Ufficio comunicazione..."
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
+              className="rounded-xl border p-3"
+              placeholder="Nota assegnazione opzionale"
+              value={assignmentNotes}
+              onChange={(e) => setAssignmentNotes(e.target.value)}
             />
 
             <button
               onClick={handleAssign}
-              disabled={assignLoading || !assignedTo.trim()}
+              disabled={assignLoading || !selectedAssigneeId}
               className="rounded-xl bg-gray-900 px-6 py-3 font-semibold text-white hover:bg-black disabled:opacity-50"
             >
               {assignLoading ? "Salvo..." : "Assegna"}
@@ -475,12 +508,27 @@ export default function AssetDetailPage({ params }: Props) {
 
             <button
               onClick={handleUnassign}
-              disabled={assignLoading || !asset.assigned_to}
+              disabled={assignLoading || (!asset.assigned_to && !asset.assignee_id)}
               className="rounded-xl border px-6 py-3 font-semibold hover:bg-white disabled:opacity-50"
             >
               Rimuovi
             </button>
           </div>
+
+          {assignees.length === 0 && (
+            <p className="mt-3 text-sm text-gray-500">
+              Nessun assegnatario attivo presente.{" "}
+              <Link href="/assignees" className="font-semibold text-blue-700 hover:text-blue-900">
+                Crea un assegnatario
+              </Link>
+            </p>
+          )}
+
+          {asset.assigned_to && !asset.assignee_id && (
+            <p className="mt-3 rounded-2xl border border-orange-100 bg-orange-50 p-3 text-sm text-orange-800">
+              Questo asset usa ancora una vecchia assegnazione testuale: {asset.assigned_to}.
+            </p>
+          )}
         </div>
 
         <div className="mt-8 rounded-3xl border border-gray-100 bg-gray-50/70 p-5 shadow-sm">

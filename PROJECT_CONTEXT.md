@@ -84,6 +84,8 @@ Regole di dominio da preservare durante ogni evoluzione:
 - Un item non deve essere eliminabile se collegato ad asset o stockcard.
 - Backend e frontend devono restare allineati sulle regole di eliminazione e protezione dati.
 - Gli asset serializzati hanno uno stato operativo e una sede corrente.
+- Gli asset possono essere assegnati ad assegnatari strutturati tramite `assignee_id`; il campo testuale `assigned_to` resta compatibile durante la migrazione progressiva.
+- Gli assegnatari collegati ad asset non devono essere eliminati definitivamente: vanno disattivati tramite `is_active=false`.
 - Gli eventi gestiscono materiale in uscita, rientrato o mancante.
 - Lo stock non deve andare sotto zero tramite operazioni ordinarie.
 - Le regole di sicurezza dati devono essere applicate backend-side anche quando il frontend le anticipa.

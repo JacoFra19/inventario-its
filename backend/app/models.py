@@ -57,6 +57,7 @@ class Asset(Base):
 
     item_id = Column(Integer, ForeignKey("items.id"), nullable=False)
     current_location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
+    assignee_id = Column(Integer, ForeignKey("assignees.id"), nullable=True, index=True)
 
     status = Column(String(20), nullable=False, default="IN_SEDE")
     assigned_to = Column(String(255), nullable=True)
@@ -64,6 +65,22 @@ class Asset(Base):
 
     item = relationship("Item")
     current_location = relationship("Location")
+    assignee = relationship("Assignee", back_populates="assets")
+
+
+class Assignee(Base):
+    __tablename__ = "assignees"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    type = Column(String(20), nullable=False)
+    email = Column(String(255), nullable=True)
+    phone = Column(String(50), nullable=True)
+    notes = Column(String(500), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    assets = relationship("Asset", back_populates="assignee")
 
 
 class AssetMovement(Base):

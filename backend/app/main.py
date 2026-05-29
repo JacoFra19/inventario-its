@@ -8,7 +8,7 @@ from io import BytesIO
 import qrcode
 
 from .db import engine, SessionLocal
-from .models import Base, Location, LocationCounter, Category, Item, Asset, AssetMovement, AssetLog, StockCard, StockMovement, Event, EventAsset, EventStock
+from .models import Base, Location, LocationCounter, Category, Item, Asset, Assignee, AssetMovement, AssetLog, StockCard, StockMovement, Event, EventAsset, EventStock
 from .seed import seed_categories, seed_locations
 
 app = FastAPI(title="Inventario ITS", version="0.2.0")
@@ -74,6 +74,52 @@ def serialize_item(
         "asset_count": asset_count,
         "stock_card_count": stock_card_count,
     }
+
+
+def serialize_assignee(
+    assignee: Assignee,
+    asset_count: int | None = None,
+    assets: list[Asset] | None = None,
+):
+    result = {
+        "id": assignee.id,
+        "name": assignee.name,
+        "type": assignee.type,
+        "email": assignee.email,
+        "phone": assignee.phone,
+        "notes": assignee.notes,
+        "is_active": assignee.is_active,
+        "created_at": assignee.created_at,
+        "asset_count": asset_count,
+    }
+
+    if assets is not None:
+        result["assets"] = [
+            {
+                "id": asset.id,
+                "inventory_code": asset.inventory_code,
+                "status": asset.status,
+                "assigned_to": asset.assigned_to,
+                "notes": asset.notes,
+            }
+            for asset in assets
+        ]
+
+    return result
+
+
+def validate_assignee_type(assignee_type: str):
+    normalized_type = assignee_type.strip().upper()
+    allowed_types = {"PERSON", "DEPARTMENT", "OTHER"}
+
+    if normalized_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo assegnatario non valido. Usa PERSON, DEPARTMENT o OTHER.",
+        )
+
+    return normalized_type
+
 
 # --- HELPER FOR ASSET LOGS ---
 def create_asset_log(
@@ -601,6 +647,11 @@ def global_search(q: str = ""):
             item = items.get(asset.item_id)
             category = categories.get(item.category_id) if item else None
             location = locations.get(asset.current_location_id)
+            assignee = None
+            if asset.assignee_id:
+                assignee = db.execute(
+                    select(Assignee).where(Assignee.id == asset.assignee_id)
+                ).scalar_one_or_none()
 
             if not text_matches(
                 normalized_query,
@@ -608,6 +659,8 @@ def global_search(q: str = ""):
                 asset.notes,
                 asset.status,
                 asset.assigned_to,
+                assignee.name if assignee else None,
+                assignee.email if assignee else None,
                 item.name if item else None,
                 item.brand if item else None,
                 item.model if item else None,
@@ -1237,6 +1290,177 @@ def delete_item(item_id: int):
         db.close()
 
 
+@app.get("/assignees")
+def list_assignees():
+    db = SessionLocal()
+
+    try:
+        assignees = db.query(Assignee).order_by(Assignee.name.asc()).all()
+        return [
+            serialize_assignee(
+                assignee,
+                asset_count=db.query(Asset).filter(Asset.assignee_id == assignee.id).count(),
+            )
+            for assignee in assignees
+        ]
+    finally:
+        db.close()
+
+
+@app.get("/assignees/{assignee_id}")
+def get_assignee(assignee_id: int):
+    db = SessionLocal()
+
+    try:
+        assignee = db.execute(
+            select(Assignee).where(Assignee.id == assignee_id)
+        ).scalar_one_or_none()
+
+        if not assignee:
+            raise HTTPException(status_code=404, detail="Assegnatario non trovato")
+
+        assets = (
+            db.query(Asset)
+            .filter(Asset.assignee_id == assignee.id)
+            .order_by(Asset.inventory_code.asc())
+            .all()
+        )
+
+        return serialize_assignee(
+            assignee,
+            asset_count=len(assets),
+            assets=assets,
+        )
+    finally:
+        db.close()
+
+
+@app.post("/assignees")
+def create_assignee(
+    name: str = Body(...),
+    type: str = Body(...),
+    email: str | None = Body(None),
+    phone: str | None = Body(None),
+    notes: str | None = Body(None),
+    is_active: bool = Body(True),
+):
+    db = SessionLocal()
+
+    try:
+        assignee = Assignee(
+            name=name.strip(),
+            type=validate_assignee_type(type),
+            email=email.strip() if email else None,
+            phone=phone.strip() if phone else None,
+            notes=notes.strip() if notes else None,
+            is_active=is_active,
+        )
+
+        if not assignee.name:
+            raise HTTPException(status_code=400, detail="Nome assegnatario obbligatorio.")
+
+        db.add(assignee)
+        db.commit()
+        db.refresh(assignee)
+
+        return serialize_assignee(assignee, asset_count=0)
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.put("/assignees/{assignee_id}")
+def update_assignee(
+    assignee_id: int,
+    name: str = Body(...),
+    type: str = Body(...),
+    email: str | None = Body(None),
+    phone: str | None = Body(None),
+    notes: str | None = Body(None),
+    is_active: bool = Body(True),
+):
+    db = SessionLocal()
+
+    try:
+        assignee = db.execute(
+            select(Assignee).where(Assignee.id == assignee_id)
+        ).scalar_one_or_none()
+
+        if not assignee:
+            raise HTTPException(status_code=404, detail="Assegnatario non trovato")
+
+        clean_name = name.strip()
+        if not clean_name:
+            raise HTTPException(status_code=400, detail="Nome assegnatario obbligatorio.")
+
+        assignee.name = clean_name
+        assignee.type = validate_assignee_type(type)
+        assignee.email = email.strip() if email else None
+        assignee.phone = phone.strip() if phone else None
+        assignee.notes = notes.strip() if notes else None
+        assignee.is_active = is_active
+
+        linked_assets = db.query(Asset).filter(Asset.assignee_id == assignee.id).all()
+        for asset in linked_assets:
+            asset.assigned_to = assignee.name
+
+        db.commit()
+        db.refresh(assignee)
+
+        return serialize_assignee(
+            assignee,
+            asset_count=len(linked_assets),
+            assets=linked_assets,
+        )
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+@app.delete("/assignees/{assignee_id}")
+def delete_assignee(assignee_id: int):
+    db = SessionLocal()
+
+    try:
+        assignee = db.execute(
+            select(Assignee).where(Assignee.id == assignee_id)
+        ).scalar_one_or_none()
+
+        if not assignee:
+            raise HTTPException(status_code=404, detail="Assegnatario non trovato")
+
+        linked_assets = db.query(Asset).filter(Asset.assignee_id == assignee.id).all()
+        if linked_assets:
+            assignee.is_active = False
+            db.commit()
+            db.refresh(assignee)
+
+            return {
+                "deleted": False,
+                "deactivated": True,
+                "assignee_id": assignee.id,
+                "detail": "Assegnatario disattivato perché collegato ad asset.",
+            }
+
+        db.delete(assignee)
+        db.commit()
+
+        return {
+            "deleted": True,
+            "deactivated": False,
+            "assignee_id": assignee_id,
+        }
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
 @app.post("/assets")
 def create_asset(item_id: int, location_code: str, notes: str | None = None):
     db = SessionLocal()
@@ -1335,7 +1559,8 @@ def transfer_asset(
 @app.post("/assets/{asset_id}/assign")
 def assign_asset(
     asset_id: int,
-    assigned_to: str = Body(...),
+    assigned_to: str | None = Body(None),
+    assignee_id: int | None = Body(None),
     notes: str | None = Body(None)
 ):
     db = SessionLocal()
@@ -1346,7 +1571,29 @@ def assign_asset(
         if not asset:
             raise HTTPException(status_code=404, detail="Asset non trovato")
 
-        asset.assigned_to = assigned_to.strip()
+        assignee = None
+        if assignee_id is not None:
+            assignee = db.execute(
+                select(Assignee).where(Assignee.id == assignee_id)
+            ).scalar_one_or_none()
+
+            if not assignee:
+                raise HTTPException(status_code=404, detail="Assegnatario non trovato")
+
+            if not assignee.is_active:
+                raise HTTPException(status_code=400, detail="Assegnatario non attivo")
+
+            asset.assignee_id = assignee.id
+            asset.assigned_to = assignee.name
+        elif assigned_to and assigned_to.strip():
+            asset.assignee_id = None
+            asset.assigned_to = assigned_to.strip()
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Indica un assegnatario strutturato o un testo assegnazione.",
+            )
+
         asset.status = "ASSEGNATO"
 
         if notes:
@@ -1383,6 +1630,7 @@ def unassign_asset(asset_id: int):
             raise HTTPException(status_code=404, detail="Asset non trovato")
 
         previous_assignee = asset.assigned_to
+        asset.assignee_id = None
         asset.assigned_to = None
         asset.status = "IN_SEDE"
 
@@ -1515,6 +1763,11 @@ def get_asset_detail_by_code(inventory_code: str):
     location = db.execute(
         select(Location).where(Location.id == asset.current_location_id)
     ).scalar_one_or_none()
+    assignee = None
+    if asset.assignee_id:
+        assignee = db.execute(
+            select(Assignee).where(Assignee.id == asset.assignee_id)
+        ).scalar_one_or_none()
 
     serialized_item = None if not item else serialize_item(
         item,
@@ -1526,6 +1779,10 @@ def get_asset_detail_by_code(inventory_code: str):
         "asset": asset,
         "item": serialized_item,
         "location": location,
+        "assignee": None if not assignee else serialize_assignee(
+            assignee,
+            asset_count=db.query(Asset).filter(Asset.assignee_id == assignee.id).count(),
+        ),
     }
 
     db.close()

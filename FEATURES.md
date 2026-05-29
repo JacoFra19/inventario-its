@@ -5,6 +5,7 @@
 Inventario ITS e' una webapp gestionale per inventario fisico e logistico. Le funzionalita' principali attualmente implementate coprono:
 
 - catalogo item e categorie;
+- anagrafica assegnatari per persone, reparti e riferimenti operativi;
 - asset serializzati con codici inventariali univoci;
 - stock e consumabili non serializzati;
 - eventi e fiere con materiali in uscita e rientro;
@@ -34,6 +35,7 @@ Sono presenti card di navigazione verso:
 
 - Asset;
 - Item;
+- Assegnatari;
 - Scanner QR;
 - Stock e consumabili;
 - Eventi e fiere;
@@ -131,7 +133,8 @@ Il dettaglio asset (`frontend/src/app/assets/[code]/page.tsx`) include:
 - storico operativo/log;
 - storico movimenti sede;
 - trasferimento asset tra sedi;
-- assegnazione a persona/reparto;
+- assegnazione ad assegnatario strutturato tramite `assignee_id`;
+- compatibilita' con vecchie assegnazioni testuali `assigned_to`;
 - rimozione assegnazione;
 - segnalazione asset mancante con `ConfirmDialog`;
 - ripristino asset mancante con `ConfirmDialog`;
@@ -158,6 +161,47 @@ Endpoint backend principali:
 - `GET /assets/{asset_id}/history`
 - `GET /assets/{asset_id}/logs`
 - `GET /exports/assets.xlsx`
+
+## Assegnatari
+
+La pagina assegnatari (`frontend/src/app/assignees/page.tsx`) introduce una prima anagrafica strutturata per persone, reparti e altri riferimenti a cui assegnare asset.
+
+Funzionalita' presenti:
+
+- lista assegnatari con tabella globale `DataTable`;
+- ricerca testuale per nome, tipo, email, telefono e note;
+- creazione assegnatario;
+- modifica assegnatario;
+- badge tipo assegnatario;
+- stato attivo/disattivato;
+- conteggio asset assegnati;
+- dettaglio espandibile con asset attualmente assegnati;
+- eliminazione definitiva solo se non ci sono asset collegati;
+- disattivazione automatica se l'assegnatario ha asset collegati;
+- toast Sonner per feedback operativi;
+- conferma con `ConfirmDialog` per eliminazione/disattivazione.
+
+Tipi assegnatario:
+
+- `PERSON`;
+- `DEPARTMENT`;
+- `OTHER`.
+
+Endpoint backend principali:
+
+- `GET /assignees`
+- `GET /assignees/{assignee_id}`
+- `POST /assignees`
+- `PUT /assignees/{assignee_id}`
+- `DELETE /assignees/{assignee_id}`
+
+Integrazione asset:
+
+- tabella `assignees`;
+- colonna nullable `assets.assignee_id`;
+- relazione asset -> assignee;
+- `assigned_to` testuale resta disponibile per compatibilita' legacy;
+- l'assegnazione strutturata sincronizza `assigned_to` con il nome dell'assegnatario.
 
 ## Stock / Consumabili
 
@@ -428,6 +472,7 @@ Funzionalita' backend principali:
 - endpoint attività recenti `GET /dashboard/activity`;
 - endpoint export Excel `GET /exports/assets.xlsx`, `GET /exports/stocks.xlsx`, `GET /exports/events.xlsx`;
 - endpoint ricerca globale `GET /search?q=...`;
+- endpoint assegnatari `GET /assignees`, `GET /assignees/{assignee_id}`, `POST /assignees`, `PUT /assignees/{assignee_id}`, `DELETE /assignees/{assignee_id}`;
 - ricerca asset base con `GET /assets-search`.
 
 Modelli principali:
@@ -436,6 +481,7 @@ Modelli principali:
 - `LocationCounter`;
 - `Category`;
 - `Item`;
+- `Assignee`;
 - `Asset`;
 - `AssetMovement`;
 - `AssetLog`;
@@ -451,6 +497,7 @@ Database:
 - configurazione `DATABASE_URL` da variabile ambiente;
 - migrazioni database gestite con Alembic in `backend/alembic`;
 - baseline Alembic dello schema attuale;
+- migration Alembic `20260529_0002_add_assignees` per tabella assegnatari e `assets.assignee_id`;
 - Docker Compose di sviluppo con Postgres 16 e API Python.
 
 ## Regole Di Business
@@ -460,6 +507,8 @@ Regole implementate nel codice:
 - un item serializzato puo' generare asset fisici;
 - un item non serializzato puo' generare stockcard;
 - asset e stock sono domini separati;
+- assegnatari strutturati collegano asset tramite `assignee_id`;
+- assegnatari con asset collegati vengono disattivati invece di essere eliminati definitivamente;
 - codice inventariale asset generato per sede con formato `ITST-{SEDE}-{0000}`;
 - progressivo asset gestito con `LocationCounter`;
 - item non eliminabile se ha asset collegati;
