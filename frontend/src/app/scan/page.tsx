@@ -2,6 +2,7 @@
 
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 declare global {
@@ -108,9 +109,9 @@ export default function ScanPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
-      <a href="/" className="text-blue-600 hover:underline">
+      <Link href="/" className="text-blue-600 hover:underline">
         ← Dashboard
-      </a>
+      </Link>
 
       <section className="mt-6 rounded-3xl bg-gray-900 p-8 text-white shadow">
         <p className="text-sm uppercase tracking-[0.3em] text-gray-300">
@@ -118,7 +119,7 @@ export default function ScanPage() {
         </p>
         <h1 className="mt-3 text-4xl font-bold">Scansiona asset</h1>
         <p className="mt-3 max-w-2xl text-gray-300">
-          Inquadra il QR code presente sull'etichetta inventariale oppure inserisci manualmente il codice asset.
+          Inquadra il QR code presente sull&apos;etichetta inventariale oppure inserisci manualmente il codice asset.
         </p>
       </section>
 
@@ -156,7 +157,7 @@ export default function ScanPage() {
 
           {!scannerSupported && (
             <p className="mt-4 rounded-xl bg-yellow-50 p-3 text-sm text-yellow-800">
-              Questo browser non supporta la scansione QR nativa. Usa l'inserimento manuale oppure prova Chrome/Edge.
+              Questo browser non supporta la scansione QR nativa. Usa l&apos;inserimento manuale oppure prova Chrome/Edge.
             </p>
           )}
         </div>

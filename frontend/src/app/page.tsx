@@ -1,17 +1,24 @@
-import { getAssets, getEvent, getEvents, getItems, getStocks } from "@/lib/api";
+import Link from "next/link";
+import {
+  getAlerts,
+  getAssets,
+  getEvent,
+  getEvents,
+  getItems,
+  getStocks,
+} from "@/lib/api";
 import StatusBadge from "@/components/StatusBadge";
-import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
 import SectionCard from "@/components/ui/SectionCard";
-import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
 export default async function Home() {
-  const [assets, stocks, events, items] = await Promise.all([
+  const [assets, stocks, events, items, alerts] = await Promise.all([
     getAssets(),
     getStocks(),
     getEvents(),
     getItems(),
+    getAlerts(),
   ]);
 
   const inSede = assets.filter((asset) => asset.status === "IN_SEDE").length;
@@ -51,6 +58,8 @@ export default async function Home() {
   const latestEventDetails = await Promise.all(
     latestEvents.map((event) => getEvent(event.id))
   );
+
+  const totalAlerts = alerts.critical.length + alerts.warning.length;
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -95,6 +104,74 @@ export default async function Home() {
 
       <SectionCard
         className="mb-8"
+        title="Alert Operativi"
+        description="Situazioni che richiedono verifica o attenzione logistica."
+        actions={
+          <StatusBadge
+            status={alerts.critical.length > 0 ? "MANCANTE" : totalAlerts > 0 ? "WARNING" : "IN_SEDE"}
+            label={
+              alerts.critical.length > 0
+                ? `${alerts.critical.length} critici`
+                : totalAlerts > 0
+                  ? `${totalAlerts} warning`
+                  : "Nessun alert"
+            }
+          />
+        }
+      >
+        {totalAlerts === 0 ? (
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5 text-sm font-medium text-emerald-800">
+            Nessun alert operativo presente.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {alerts.critical.map((alert, index) => (
+              <Link
+                key={`critical-${alert.type}-${index}`}
+                href={typeof alert.references.href === "string" ? alert.references.href : "#"}
+                className="rounded-2xl border border-red-100 bg-red-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-100 hover:shadow-md"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-red-500">
+                      {alert.type}
+                    </p>
+                    <p className="mt-2 font-semibold text-red-950">
+                      {alert.message}
+                    </p>
+                  </div>
+
+                  <StatusBadge status="MANCANTE" label="Critico" size="sm" />
+                </div>
+              </Link>
+            ))}
+
+            {alerts.warning.map((alert, index) => (
+              <Link
+                key={`warning-${alert.type}-${index}`}
+                href={typeof alert.references.href === "string" ? alert.references.href : "#"}
+                className="rounded-2xl border border-orange-100 bg-orange-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-100 hover:shadow-md"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-orange-500">
+                      {alert.type}
+                    </p>
+                    <p className="mt-2 font-semibold text-orange-950">
+                      {alert.message}
+                    </p>
+                  </div>
+
+                  <StatusBadge status="WARNING" label="Warning" size="sm" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        className="mb-8"
         title="Ultime movimentazioni logistiche"
         description="Eventi recenti"
         actions={
@@ -130,7 +207,7 @@ export default async function Home() {
                 (openAssets > 0 || stockToReturn > 0 || missingAssets > 0);
 
               return (
-                <a
+                <Link
                   key={detail.event.id}
                   href={`/events?eventId=${detail.event.id}`}
                   className="group rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
@@ -171,7 +248,7 @@ export default async function Home() {
                       Materiale ancora da verificare prima della chiusura.
                     </p>
                   )}
-                </a>
+                </Link>
               );
             })}
           </div>
@@ -189,37 +266,37 @@ export default async function Home() {
         }
       >
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <a href="/assets?status=IN_SEDE" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md">
+          <Link href="/assets?status=IN_SEDE" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-emerald-50 hover:shadow-md">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-gray-500">In sede</p>
               <StatusBadge status="IN_SEDE" />
             </div>
             <p className="mt-3 text-2xl font-bold">{inSede}</p>
-          </a>
+          </Link>
 
-          <a href="/assets?status=ASSEGNATO" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md">
+          <Link href="/assets?status=ASSEGNATO" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-md">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-gray-500">Assegnati</p>
               <StatusBadge status="ASSEGNATO" />
             </div>
             <p className="mt-3 text-2xl font-bold">{assegnati}</p>
-          </a>
+          </Link>
 
-          <a href="/assets?status=IN_EVENTO" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-50 hover:shadow-md">
+          <Link href="/assets?status=IN_EVENTO" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-orange-50 hover:shadow-md">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-gray-500">In evento</p>
               <StatusBadge status="IN_EVENTO" />
             </div>
             <p className="mt-3 text-2xl font-bold">{assetInEvento}</p>
-          </a>
+          </Link>
 
-          <a href="/assets?status=MANCANTE" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md">
+          <Link href="/assets?status=MANCANTE" className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-red-50 hover:shadow-md">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-gray-500">Mancanti</p>
               <StatusBadge status="MANCANTE" />
             </div>
             <p className="mt-3 text-2xl font-bold">{assetMancanti}</p>
-          </a>
+          </Link>
         </div>
       </SectionCard>
 
@@ -235,42 +312,42 @@ export default async function Home() {
         }
       >
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-          <a
+          <Link
             href="/stocks?lowStock=1"
             className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Stock sotto soglia</p>
             <p className="mt-1 text-2xl font-bold">{stockSottoSoglia}</p>
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/events?status=OPEN"
             className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Eventi aperti</p>
             <p className="mt-1 text-2xl font-bold">{eventiAperti}</p>
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/assets?status=IN_EVENTO"
             className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Asset in evento</p>
             <p className="mt-1 text-2xl font-bold">{assetInEvento}</p>
-          </a>
+          </Link>
 
-          <a
+          <Link
             href="/assets?status=MANCANTE"
             className="rounded-2xl border border-gray-100 p-4 shadow-sm transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
           >
             <p className="text-sm text-gray-500">Asset mancanti</p>
             <p className="mt-1 text-2xl font-bold">{assetMancanti}</p>
-          </a>
+          </Link>
         </div>
       </SectionCard>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-        <a
+        <Link
           href="/assets"
           className="rounded-3xl bg-blue-600 p-6 text-white shadow ring-1 ring-blue-500/30 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-md"
         >
@@ -281,9 +358,9 @@ export default async function Home() {
           <p className="mt-2 text-blue-100">
             Consulta, crea, trasferisci e assegna i beni inventariati.
           </p>
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/items"
           className="rounded-3xl bg-indigo-600 p-6 text-white shadow ring-1 ring-indigo-500/30 transition hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-md"
         >
@@ -294,9 +371,9 @@ export default async function Home() {
           <p className="mt-2 text-indigo-100">
             Crea, modifica e pulisci le tipologie bene usate dagli asset.
           </p>
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/scan"
           className="rounded-3xl bg-gray-900 p-6 text-white shadow ring-1 ring-gray-800 transition hover:-translate-y-0.5 hover:bg-black hover:shadow-md"
         >
@@ -307,9 +384,9 @@ export default async function Home() {
           <p className="mt-2 text-gray-300">
             Scansiona rapidamente i QR code degli asset tramite fotocamera.
           </p>
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/stocks"
           className="rounded-3xl bg-emerald-600 p-6 text-white shadow ring-1 ring-emerald-500/30 transition hover:-translate-y-0.5 hover:bg-emerald-700 hover:shadow-md"
         >
@@ -320,9 +397,9 @@ export default async function Home() {
           <p className="mt-2 text-emerald-100">
             Gestisci quantità, carichi, scarichi, rientri e soglie minime.
           </p>
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/events"
           className="rounded-3xl bg-orange-500 p-6 text-white shadow ring-1 ring-orange-400/30 transition hover:-translate-y-0.5 hover:bg-orange-600 hover:shadow-md"
         >
@@ -333,9 +410,9 @@ export default async function Home() {
           <p className="mt-2 text-orange-100">
             Prepara eventi, scarica consumabili, collega asset e registra rientri.
           </p>
-        </a>
+        </Link>
 
-        <a
+        <Link
           href="/labels"
           className="rounded-3xl bg-white p-6 text-gray-900 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
         >
@@ -346,7 +423,7 @@ export default async function Home() {
           <p className="mt-2 text-gray-600">
             Seleziona gli asset e stampa le etichette QR da applicare ai beni.
           </p>
-        </a>
+        </Link>
 
         <SectionCard className="md:col-span-2 xl:col-span-6" title="In evoluzione" description="Prossimi moduli">
           <ul className="mt-3 space-y-2 text-gray-600">

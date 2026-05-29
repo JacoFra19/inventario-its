@@ -58,6 +58,19 @@ export type StockMovement = {
   created_at: string;
 };
 
+export type AlertSeverity = "critical" | "warning";
+
+export type OperationalAlert = {
+  type: string;
+  message: string;
+  references: Record<string, string | number | null>;
+};
+
+export type AlertsResponse = {
+  critical: OperationalAlert[];
+  warning: OperationalAlert[];
+};
+
 export async function getAssets(): Promise<Asset[]> {
   const res = await fetch(`${API_BASE}/assets`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero degli asset");
@@ -107,6 +120,18 @@ export async function getCategories(): Promise<Category[]> {
 
   if (!res.ok) {
     throw new Error("Errore nel recupero delle categorie");
+  }
+
+  return res.json();
+}
+
+export async function getAlerts(): Promise<AlertsResponse> {
+  const res = await fetch(`${API_BASE}/alerts`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero degli alert operativi");
   }
 
   return res.json();

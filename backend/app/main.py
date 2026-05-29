@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -111,6 +111,124 @@ def get_categories():
     rows = db.query(Category).order_by(Category.name.asc()).all()
     db.close()
     return rows
+
+
+@app.get("/alerts")
+def get_alerts():
+    db = SessionLocal()
+
+    try:
+        critical = []
+        warning = []
+
+        missing_assets = (
+            db.query(Asset)
+            .filter(Asset.status == "MANCANTE")
+            .order_by(Asset.inventory_code.asc())
+            .all()
+        )
+
+        for asset in missing_assets:
+            critical.append({
+                "type": "ASSET_MISSING",
+                "message": f"Asset mancante: {asset.inventory_code}",
+                "references": {
+                    "asset_id": asset.id,
+                    "inventory_code": asset.inventory_code,
+                    "href": f"/assets/{asset.inventory_code}",
+                },
+            })
+
+        open_events = (
+            db.query(Event)
+            .filter(Event.status == "OPEN")
+            .order_by(Event.created_at.asc())
+            .all()
+        )
+
+        for event in open_events:
+            open_assets = (
+                db.query(EventAsset)
+                .filter(
+                    EventAsset.event_id == event.id,
+                    EventAsset.status == "OUT",
+                )
+                .count()
+            )
+
+            if open_assets > 0:
+                critical.append({
+                    "type": "EVENT_ASSETS_OUT",
+                    "message": f"Evento aperto con {open_assets} asset ancora fuori: {event.name}",
+                    "references": {
+                        "event_id": event.id,
+                        "event_name": event.name,
+                        "assets_out": open_assets,
+                        "href": f"/events?eventId={event.id}",
+                    },
+                })
+
+        low_stocks = (
+            db.query(StockCard)
+            .filter(StockCard.quantity <= StockCard.min_threshold)
+            .order_by(StockCard.quantity.asc())
+            .all()
+        )
+
+        for stock in low_stocks:
+            item = db.execute(select(Item).where(Item.id == stock.item_id)).scalar_one_or_none()
+            location = db.execute(select(Location).where(Location.id == stock.location_id)).scalar_one_or_none()
+
+            item_label = item.name if item else f"Item ID {stock.item_id}"
+            location_label = location.code if location else f"Sede ID {stock.location_id}"
+
+            warning.append({
+                "type": "LOW_STOCK",
+                "message": (
+                    f"Stock sotto soglia: {item_label} ({location_label}) "
+                    f"- disponibili {stock.quantity}, soglia {stock.min_threshold}"
+                ),
+                "references": {
+                    "stock_card_id": stock.id,
+                    "item_id": stock.item_id,
+                    "location_id": stock.location_id,
+                    "quantity": stock.quantity,
+                    "min_threshold": stock.min_threshold,
+                    "href": "/stocks?lowStock=1",
+                },
+            })
+
+        stale_threshold = datetime.utcnow() - timedelta(days=7)
+        stale_events = (
+            db.query(Event)
+            .filter(
+                Event.status == "OPEN",
+                Event.created_at < stale_threshold,
+            )
+            .order_by(Event.created_at.asc())
+            .all()
+        )
+
+        for event in stale_events:
+            age_days = (datetime.utcnow() - event.created_at).days
+
+            warning.append({
+                "type": "EVENT_OPEN_TOO_LONG",
+                "message": f"Evento aperto da {age_days} giorni: {event.name}",
+                "references": {
+                    "event_id": event.id,
+                    "event_name": event.name,
+                    "age_days": age_days,
+                    "href": f"/events?eventId={event.id}",
+                },
+            })
+
+        return {
+            "critical": critical,
+            "warning": warning,
+        }
+    finally:
+        db.close()
 
 
 @app.post("/items")
