@@ -19,6 +19,7 @@ import {
   getLocations,
   getStockHistory,
   getStocks,
+  getStocksExportUrl,
 } from "@/lib/api";
 
 type MovementType = "LOAD" | "UNLOAD" | "RETURN" | "ADJUST";
@@ -264,9 +265,15 @@ export default function StocksPage() {
         title="Stock e consumabili"
         description="Gestione quantità per gadget, materiale promozionale, cavi e consumabili."
         actions={
-          <SecondaryButton href="/assets">
-            Vai agli Asset
-          </SecondaryButton>
+          <>
+            <SecondaryButton href={getStocksExportUrl()}>
+              Esporta Excel
+            </SecondaryButton>
+
+            <SecondaryButton href="/assets">
+              Vai agli Asset
+            </SecondaryButton>
+          </>
         }
       />
 

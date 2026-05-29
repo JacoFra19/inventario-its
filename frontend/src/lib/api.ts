@@ -137,6 +137,18 @@ export async function getAlerts(): Promise<AlertsResponse> {
   return res.json();
 }
 
+export function getAssetsExportUrl() {
+  return `${API_BASE}/exports/assets.xlsx`;
+}
+
+export function getStocksExportUrl() {
+  return `${API_BASE}/exports/stocks.xlsx`;
+}
+
+export function getEventsExportUrl() {
+  return `${API_BASE}/exports/events.xlsx`;
+}
+
 export async function getStocks(): Promise<StockCard[]> {
   const res = await fetch(`${API_BASE}/stocks`, {
     cache: "no-store",

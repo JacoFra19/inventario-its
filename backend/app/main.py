@@ -92,6 +92,61 @@ def create_asset_log(
     db.add(log)
     return log
 
+
+def location_export_label(location: Location | None):
+    if not location:
+        return ""
+
+    return f"{location.code} - {location.name}"
+
+
+def item_export_label(item: Item | None):
+    if not item:
+        return ""
+
+    parts = [item.name]
+    if item.brand:
+        parts.append(item.brand)
+    if item.model:
+        parts.append(item.model)
+
+    return " - ".join(parts)
+
+
+def style_export_sheet(sheet):
+    from openpyxl.styles import Font, PatternFill
+
+    header_fill = PatternFill("solid", fgColor="E5E7EB")
+
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = sheet.dimensions
+
+    for column_cells in sheet.columns:
+        max_length = max(
+            len(str(cell.value)) if cell.value is not None else 0
+            for cell in column_cells
+        )
+        adjusted_width = min(max(max_length + 2, 12), 48)
+        sheet.column_dimensions[column_cells[0].column_letter].width = adjusted_width
+
+
+def export_workbook(workbook, filename: str):
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -227,6 +282,327 @@ def get_alerts():
             "critical": critical,
             "warning": warning,
         }
+    finally:
+        db.close()
+
+
+@app.get("/exports/assets.xlsx")
+def export_assets_xlsx():
+    from openpyxl import Workbook
+
+    db = SessionLocal()
+
+    try:
+        workbook = Workbook()
+        assets_sheet = workbook.active
+        assets_sheet.title = "Asset"
+        assets_sheet.append([
+            "ID",
+            "Codice inventario",
+            "Item",
+            "Categoria",
+            "Marca",
+            "Modello",
+            "Sede attuale",
+            "Stato",
+            "Assegnato a",
+            "Note",
+        ])
+
+        items = {item.id: item for item in db.query(Item).all()}
+        locations = {location.id: location for location in db.query(Location).all()}
+        assets = db.query(Asset).order_by(Asset.inventory_code.asc()).all()
+
+        for asset in assets:
+            item = items.get(asset.item_id)
+            category = item.category.name if item and item.category else ""
+
+            assets_sheet.append([
+                asset.id,
+                asset.inventory_code,
+                item_export_label(item),
+                category,
+                item.brand if item else "",
+                item.model if item else "",
+                location_export_label(locations.get(asset.current_location_id)),
+                asset.status,
+                asset.assigned_to or "",
+                asset.notes or "",
+            ])
+
+        movements_sheet = workbook.create_sheet("Movimenti asset")
+        movements_sheet.append([
+            "ID",
+            "Codice inventario",
+            "Da sede",
+            "A sede",
+            "Data movimento",
+            "Operatore",
+            "Note",
+        ])
+
+        assets_by_id = {asset.id: asset for asset in assets}
+        movements = (
+            db.query(AssetMovement)
+            .order_by(AssetMovement.moved_at.desc())
+            .all()
+        )
+
+        for movement in movements:
+            asset = assets_by_id.get(movement.asset_id)
+
+            movements_sheet.append([
+                movement.id,
+                asset.inventory_code if asset else "",
+                location_export_label(locations.get(movement.from_location_id)),
+                location_export_label(locations.get(movement.to_location_id)),
+                movement.moved_at,
+                movement.moved_by or "",
+                movement.notes or "",
+            ])
+
+        logs_sheet = workbook.create_sheet("Log asset")
+        logs_sheet.append([
+            "ID",
+            "Codice inventario",
+            "Tipo azione",
+            "Descrizione",
+            "Data",
+            "Operatore",
+        ])
+
+        logs = (
+            db.query(AssetLog)
+            .order_by(AssetLog.created_at.desc())
+            .all()
+        )
+
+        for log in logs:
+            asset = assets_by_id.get(log.asset_id)
+
+            logs_sheet.append([
+                log.id,
+                asset.inventory_code if asset else "",
+                log.action_type,
+                log.description,
+                log.created_at,
+                log.created_by or "",
+            ])
+
+        for sheet in workbook.worksheets:
+            style_export_sheet(sheet)
+
+        return export_workbook(workbook, "inventario-assets.xlsx")
+    finally:
+        db.close()
+
+
+@app.get("/exports/stocks.xlsx")
+def export_stocks_xlsx():
+    from openpyxl import Workbook
+
+    db = SessionLocal()
+
+    try:
+        workbook = Workbook()
+        stocks_sheet = workbook.active
+        stocks_sheet.title = "Stockcard"
+        stocks_sheet.append([
+            "ID",
+            "Item",
+            "Categoria",
+            "Marca",
+            "Modello",
+            "Sede",
+            "Quantita disponibile",
+            "Soglia minima",
+            "Sotto soglia",
+            "Note",
+        ])
+
+        items = {item.id: item for item in db.query(Item).all()}
+        locations = {location.id: location for location in db.query(Location).all()}
+        stocks = db.query(StockCard).order_by(StockCard.id.asc()).all()
+
+        for stock in stocks:
+            item = items.get(stock.item_id)
+            category = item.category.name if item and item.category else ""
+
+            stocks_sheet.append([
+                stock.id,
+                item_export_label(item),
+                category,
+                item.brand if item else "",
+                item.model if item else "",
+                location_export_label(locations.get(stock.location_id)),
+                stock.quantity,
+                stock.min_threshold,
+                "SI" if stock.quantity <= stock.min_threshold else "NO",
+                stock.notes or "",
+            ])
+
+        movements_sheet = workbook.create_sheet("Movimenti stock")
+        movements_sheet.append([
+            "ID",
+            "Stockcard ID",
+            "Item",
+            "Sede",
+            "Tipo movimento",
+            "Quantita",
+            "Data",
+            "Note",
+        ])
+
+        stocks_by_id = {stock.id: stock for stock in stocks}
+        movements = (
+            db.query(StockMovement)
+            .order_by(StockMovement.created_at.desc())
+            .all()
+        )
+
+        for movement in movements:
+            stock = stocks_by_id.get(movement.stock_card_id)
+            item = items.get(stock.item_id) if stock else None
+            location = locations.get(stock.location_id) if stock else None
+
+            movements_sheet.append([
+                movement.id,
+                movement.stock_card_id,
+                item_export_label(item),
+                location_export_label(location),
+                movement.movement_type,
+                movement.quantity,
+                movement.created_at,
+                movement.notes or "",
+            ])
+
+        for sheet in workbook.worksheets:
+            style_export_sheet(sheet)
+
+        return export_workbook(workbook, "inventario-stock.xlsx")
+    finally:
+        db.close()
+
+
+@app.get("/exports/events.xlsx")
+def export_events_xlsx():
+    from openpyxl import Workbook
+
+    db = SessionLocal()
+
+    try:
+        workbook = Workbook()
+        events_sheet = workbook.active
+        events_sheet.title = "Eventi"
+        events_sheet.append([
+            "ID",
+            "Nome",
+            "Luogo",
+            "Data inizio",
+            "Data fine",
+            "Referente",
+            "Stato",
+            "Creato il",
+            "Asset collegati",
+            "Stock collegati",
+            "Note",
+        ])
+
+        events = db.query(Event).order_by(Event.created_at.desc()).all()
+
+        for event in events:
+            linked_assets = db.query(EventAsset).filter(EventAsset.event_id == event.id).count()
+            linked_stocks = db.query(EventStock).filter(EventStock.event_id == event.id).count()
+
+            events_sheet.append([
+                event.id,
+                event.name,
+                event.location or "",
+                event.start_date or "",
+                event.end_date or "",
+                event.manager or "",
+                event.status,
+                event.created_at,
+                linked_assets,
+                linked_stocks,
+                event.notes or "",
+            ])
+
+        event_assets_sheet = workbook.create_sheet("Asset eventi")
+        event_assets_sheet.append([
+            "ID",
+            "Evento",
+            "Codice asset",
+            "Stato",
+            "Creato il",
+            "Rientrato il",
+            "Note",
+        ])
+
+        assets = {asset.id: asset for asset in db.query(Asset).all()}
+        events_by_id = {event.id: event for event in events}
+        event_assets = (
+            db.query(EventAsset)
+            .order_by(EventAsset.created_at.desc())
+            .all()
+        )
+
+        for event_asset in event_assets:
+            event = events_by_id.get(event_asset.event_id)
+            asset = assets.get(event_asset.asset_id)
+
+            event_assets_sheet.append([
+                event_asset.id,
+                event.name if event else "",
+                asset.inventory_code if asset else "",
+                event_asset.status,
+                event_asset.created_at,
+                event_asset.returned_at,
+                event_asset.notes or "",
+            ])
+
+        event_stocks_sheet = workbook.create_sheet("Stock eventi")
+        event_stocks_sheet.append([
+            "ID",
+            "Evento",
+            "Stockcard ID",
+            "Item",
+            "Quantita uscita",
+            "Quantita rientrata",
+            "Da rientrare",
+            "Creato il",
+            "Note",
+        ])
+
+        stocks = {stock.id: stock for stock in db.query(StockCard).all()}
+        items = {item.id: item for item in db.query(Item).all()}
+        event_stocks = (
+            db.query(EventStock)
+            .order_by(EventStock.created_at.desc())
+            .all()
+        )
+
+        for event_stock in event_stocks:
+            event = events_by_id.get(event_stock.event_id)
+            stock = stocks.get(event_stock.stock_card_id)
+            item = items.get(stock.item_id) if stock else None
+
+            event_stocks_sheet.append([
+                event_stock.id,
+                event.name if event else "",
+                event_stock.stock_card_id,
+                item_export_label(item),
+                event_stock.quantity_out,
+                event_stock.quantity_returned,
+                max(0, event_stock.quantity_out - event_stock.quantity_returned),
+                event_stock.created_at,
+                event_stock.notes or "",
+            ])
+
+        for sheet in workbook.worksheets:
+            style_export_sheet(sheet)
+
+        return export_workbook(workbook, "inventario-eventi.xlsx")
     finally:
         db.close()
 

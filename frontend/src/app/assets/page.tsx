@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
 import DataTable from "@/components/ui/DataTable";
 import type { DataTableColumn } from "@/components/ui/DataTable";
+import SecondaryButton from "@/components/ui/SecondaryButton";
 import { toast } from "sonner";
 import {
   Asset,
@@ -13,6 +14,7 @@ import {
   Location,
   createAsset,
   getAssets,
+  getAssetsExportUrl,
   getItems,
   getLocations,
 } from "@/lib/api";
@@ -169,6 +171,10 @@ export default function AssetsPage() {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
+          <SecondaryButton href={getAssetsExportUrl()}>
+            Esporta Excel
+          </SecondaryButton>
+
           <Link
             href="/items"
             className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"

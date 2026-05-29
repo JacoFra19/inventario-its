@@ -23,6 +23,7 @@ import {
   getAssets,
   getEvent,
   getEvents,
+  getEventsExportUrl,
   getItems,
   getLocations,
   getStocks,
@@ -486,6 +487,10 @@ export default function EventsPage() {
                   Stampa report
                 </PrimaryButton>
               )}
+
+              <SecondaryButton href={getEventsExportUrl()}>
+                Esporta Excel
+              </SecondaryButton>
 
               <SecondaryButton href="/stocks">
                 Vai agli Stock
