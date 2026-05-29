@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -178,6 +178,532 @@ def empty_search_response(query: str):
             "stocks": [],
             "events": [],
         },
+    }
+
+
+IMPORT_SHEET_NAME = "Import"
+IMPORT_MAX_ROWS = 1000
+IMPORT_COLUMNS = [
+    "tipo",
+    "sede",
+    "categoria",
+    "nome",
+    "marca",
+    "modello",
+    "serializzato",
+    "quantita",
+    "soglia_minima",
+    "note",
+    "assegnatario",
+]
+
+
+def normalize_import_text(value):
+    if value is None:
+        return ""
+
+    return str(value).strip()
+
+
+def normalize_import_key(value):
+    return normalize_import_text(value).lower()
+
+
+def parse_import_bool(value):
+    if value is None or normalize_import_text(value) == "":
+        return None
+
+    normalized = normalize_import_text(value).lower()
+    if normalized in {"si", "sì", "yes", "true", "1", "asset"}:
+        return True
+    if normalized in {"no", "false", "0", "stock"}:
+        return False
+
+    raise ValueError("Valore serializzato non valido. Usa SI/NO.")
+
+
+def parse_import_int(value, field_name: str):
+    if value is None or normalize_import_text(value) == "":
+        return None
+
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name} deve essere un numero intero.")
+
+    return parsed
+
+
+def import_result_template():
+    return {
+        "rows": [],
+        "summary": {
+            "total_rows": 0,
+            "valid_rows": 0,
+            "warning_rows": 0,
+            "error_rows": 0,
+            "items_to_create": 0,
+            "items_to_reuse": 0,
+            "categories_to_create": 0,
+            "asset_to_create": 0,
+            "stockcard_to_create": 0,
+            "stockcard_to_update": 0,
+            "assignee_to_create": 0,
+            "assignee_to_reuse": 0,
+        },
+        "can_commit": False,
+        "operations": [],
+    }
+
+
+def find_category_by_name(db: Session, name: str):
+    normalized = normalize_import_key(name)
+    for category in db.query(Category).all():
+        if normalize_import_key(category.name) == normalized:
+            return category
+
+    return None
+
+
+def find_location_by_code(db: Session, code: str):
+    normalized = normalize_import_key(code)
+    for location in db.query(Location).all():
+        if normalize_import_key(location.code) == normalized:
+            return location
+
+    return None
+
+
+def find_item(
+    db: Session,
+    category_name: str,
+    name: str,
+    brand: str | None,
+    model: str | None,
+    is_serialized: bool,
+):
+    category_key = normalize_import_key(category_name)
+    name_key = normalize_import_key(name)
+    brand_key = normalize_import_key(brand)
+    model_key = normalize_import_key(model)
+
+    for item in db.query(Item).all():
+        category = item.category
+        if (
+            category
+            and normalize_import_key(category.name) == category_key
+            and normalize_import_key(item.name) == name_key
+            and normalize_import_key(item.brand) == brand_key
+            and normalize_import_key(item.model) == model_key
+            and item.is_serialized == is_serialized
+        ):
+            return item
+
+    return None
+
+
+def find_assignee_by_name(db: Session, name: str):
+    normalized = normalize_import_key(name)
+    for assignee in db.query(Assignee).all():
+        if normalize_import_key(assignee.name) == normalized:
+            return assignee
+
+    return None
+
+
+def build_import_preview(file_bytes: bytes, db: Session):
+    from openpyxl import load_workbook
+
+    try:
+        workbook = load_workbook(BytesIO(file_bytes), data_only=True)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"File Excel non valido: {exc}")
+
+    if IMPORT_SHEET_NAME not in workbook.sheetnames:
+        raise HTTPException(status_code=400, detail=f"Foglio '{IMPORT_SHEET_NAME}' non trovato.")
+
+    sheet = workbook[IMPORT_SHEET_NAME]
+    headers = [
+        normalize_import_key(cell.value).replace(" ", "_")
+        for cell in next(sheet.iter_rows(min_row=1, max_row=1))
+    ]
+
+    missing_columns = [column for column in IMPORT_COLUMNS if column not in headers]
+    if missing_columns:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Colonne mancanti nel template: {', '.join(missing_columns)}",
+        )
+
+    column_indexes = {header: index for index, header in enumerate(headers)}
+    data_rows = list(sheet.iter_rows(min_row=2, values_only=True))
+    non_empty_rows = [
+        row for row in data_rows if any(normalize_import_text(value) for value in row)
+    ]
+
+    if len(non_empty_rows) > IMPORT_MAX_ROWS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Il file contiene più di {IMPORT_MAX_ROWS} righe importabili.",
+        )
+
+    result = import_result_template()
+    planned_categories: set[str] = set()
+    planned_items: set[tuple[str, str, str, str, bool]] = set()
+    reused_items: set[tuple[str, str, str, str, bool]] = set()
+    planned_assignees: set[str] = set()
+    reused_assignees: set[str] = set()
+    planned_stockcards: set[tuple[str, str, str, str, bool, str]] = set()
+    updated_stockcards: set[tuple[str, str, str, str, bool, str]] = set()
+
+    def value(row, column):
+        index = column_indexes[column]
+        return row[index] if index < len(row) else None
+
+    for offset, row in enumerate(data_rows, start=2):
+        if not any(normalize_import_text(cell) for cell in row):
+            continue
+
+        errors = []
+        warnings = []
+
+        tipo = normalize_import_text(value(row, "tipo")).upper()
+        sede = normalize_import_text(value(row, "sede")).upper()
+        categoria = normalize_import_text(value(row, "categoria"))
+        nome = normalize_import_text(value(row, "nome"))
+        marca = normalize_import_text(value(row, "marca"))
+        modello = normalize_import_text(value(row, "modello"))
+        note = normalize_import_text(value(row, "note"))
+        assegnatario = normalize_import_text(value(row, "assegnatario"))
+
+        try:
+            serializzato = parse_import_bool(value(row, "serializzato"))
+        except ValueError as exc:
+            serializzato = None
+            errors.append(str(exc))
+
+        try:
+            quantita = parse_import_int(value(row, "quantita"), "quantita")
+        except ValueError as exc:
+            quantita = None
+            errors.append(str(exc))
+
+        try:
+            soglia_minima = parse_import_int(value(row, "soglia_minima"), "soglia_minima")
+        except ValueError as exc:
+            soglia_minima = None
+            errors.append(str(exc))
+
+        if tipo not in {"ASSET", "STOCK"}:
+            errors.append("Tipo obbligatorio: usa ASSET o STOCK.")
+
+        location = find_location_by_code(db, sede) if sede else None
+        if not sede:
+            errors.append("Sede obbligatoria.")
+        elif not location:
+            errors.append(f"Sede non valida: {sede}.")
+
+        if not categoria:
+            errors.append("Categoria obbligatoria.")
+
+        if not nome:
+            errors.append("Nome item obbligatorio.")
+
+        if quantita is None:
+            errors.append("Quantita obbligatoria.")
+        elif quantita < 1:
+            errors.append("Quantita deve essere almeno 1.")
+
+        if tipo == "ASSET":
+            if serializzato is False:
+                errors.append("Le righe ASSET devono avere serializzato=SI.")
+            serializzato = True
+            if soglia_minima not in {None, 0}:
+                warnings.append("Soglia minima ignorata per righe ASSET.")
+
+        if tipo == "STOCK":
+            if serializzato is True:
+                errors.append("Le righe STOCK devono avere serializzato=NO.")
+            serializzato = False
+            if assegnatario:
+                warnings.append("Assegnatario ignorato per righe STOCK.")
+            if soglia_minima is not None and soglia_minima < 0:
+                errors.append("Soglia minima non può essere negativa.")
+
+        status = "ERROR" if errors else "WARNING" if warnings else "VALID"
+        item_key = (
+            normalize_import_key(categoria),
+            normalize_import_key(nome),
+            normalize_import_key(marca),
+            normalize_import_key(modello),
+            bool(serializzato),
+        )
+
+        description_parts = [tipo or "-", nome or "-", sede or "-"]
+        description = " - ".join(description_parts)
+
+        if not errors:
+            category = find_category_by_name(db, categoria)
+            if category is None:
+                planned_categories.add(normalize_import_key(categoria))
+
+            item = find_item(db, categoria, nome, marca, modello, bool(serializzato))
+            if item is None:
+                planned_items.add(item_key)
+            else:
+                reused_items.add(item_key)
+
+            if tipo == "ASSET":
+                result["summary"]["asset_to_create"] += quantita or 0
+                if assegnatario:
+                    assignee = find_assignee_by_name(db, assegnatario)
+                    if assignee is None:
+                        planned_assignees.add(normalize_import_key(assegnatario))
+                    else:
+                        reused_assignees.add(normalize_import_key(assegnatario))
+
+            if tipo == "STOCK" and location:
+                stock_key = (*item_key, normalize_import_key(location.code))
+                existing_stock = None
+                if item:
+                    existing_stock = (
+                        db.query(StockCard)
+                        .filter(
+                            StockCard.item_id == item.id,
+                            StockCard.location_id == location.id,
+                        )
+                        .first()
+                    )
+
+                if existing_stock:
+                    updated_stockcards.add(stock_key)
+                    warnings.append("Stockcard esistente: la quantità verrà incrementata.")
+                    status = "WARNING"
+                else:
+                    planned_stockcards.add(stock_key)
+
+            result["operations"].append({
+                "row_number": offset,
+                "type": tipo,
+                "location_code": location.code if location else sede,
+                "category": categoria,
+                "name": nome,
+                "brand": marca,
+                "model": modello,
+                "is_serialized": bool(serializzato),
+                "quantity": quantita,
+                "min_threshold": soglia_minima if soglia_minima is not None else 0,
+                "notes": note,
+                "assignee": assegnatario,
+            })
+
+        message = "; ".join(errors or warnings or ["Riga valida."])
+        result["rows"].append({
+            "row_number": offset,
+            "type": tipo or "-",
+            "description": description,
+            "status": status,
+            "message": message,
+        })
+
+    result["summary"]["total_rows"] = len(result["rows"])
+    result["summary"]["valid_rows"] = sum(1 for row in result["rows"] if row["status"] == "VALID")
+    result["summary"]["warning_rows"] = sum(1 for row in result["rows"] if row["status"] == "WARNING")
+    result["summary"]["error_rows"] = sum(1 for row in result["rows"] if row["status"] == "ERROR")
+    result["summary"]["items_to_create"] = len(planned_items)
+    result["summary"]["items_to_reuse"] = len(reused_items)
+    result["summary"]["categories_to_create"] = len(planned_categories)
+    result["summary"]["stockcard_to_create"] = len(planned_stockcards)
+    result["summary"]["stockcard_to_update"] = len(updated_stockcards)
+    result["summary"]["assignee_to_create"] = len(planned_assignees)
+    result["summary"]["assignee_to_reuse"] = len(reused_assignees)
+    result["can_commit"] = result["summary"]["total_rows"] > 0 and result["summary"]["error_rows"] == 0
+
+    return result
+
+
+def get_or_create_import_category(db: Session, name: str):
+    category = find_category_by_name(db, name)
+    if category:
+        return category
+
+    category = Category(name=name.strip())
+    db.add(category)
+    db.flush()
+    return category
+
+
+def get_or_create_import_item(
+    db: Session,
+    category: Category,
+    name: str,
+    brand: str,
+    model: str,
+    is_serialized: bool,
+):
+    item = find_item(db, category.name, name, brand, model, is_serialized)
+    if item:
+        return item
+
+    item = Item(
+        name=name.strip(),
+        category_id=category.id,
+        brand=brand.strip() if brand else None,
+        model=model.strip() if model else None,
+        technical_specs=None,
+        is_serialized=is_serialized,
+    )
+    db.add(item)
+    db.flush()
+    item.category = category
+    return item
+
+
+def get_or_create_import_assignee(db: Session, name: str):
+    assignee = find_assignee_by_name(db, name)
+    if assignee:
+        if not assignee.is_active:
+            assignee.is_active = True
+        return assignee
+
+    assignee = Assignee(
+        name=name.strip(),
+        type="PERSON",
+        is_active=True,
+    )
+    db.add(assignee)
+    db.flush()
+    return assignee
+
+
+def commit_import_operations(plan, db: Session):
+    created_assets = 0
+    created_stockcards = 0
+    updated_stockcards = 0
+    created_items: set[int] = set()
+    reused_items: set[int] = set()
+    created_assignees: set[int] = set()
+    reused_assignees: set[int] = set()
+
+    for operation in plan["operations"]:
+        location = find_location_by_code(db, operation["location_code"])
+        if not location:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sede non trovata durante il commit: {operation['location_code']}",
+            )
+
+        category_before = find_category_by_name(db, operation["category"])
+        category = get_or_create_import_category(db, operation["category"])
+        item_before = find_item(
+            db,
+            category.name,
+            operation["name"],
+            operation["brand"],
+            operation["model"],
+            operation["is_serialized"],
+        )
+        item = get_or_create_import_item(
+            db,
+            category,
+            operation["name"],
+            operation["brand"],
+            operation["model"],
+            operation["is_serialized"],
+        )
+
+        if item_before:
+            reused_items.add(item.id)
+        else:
+            created_items.add(item.id)
+
+        if operation["type"] == "ASSET":
+            assignee = None
+            if operation["assignee"]:
+                assignee_before = find_assignee_by_name(db, operation["assignee"])
+                assignee = get_or_create_import_assignee(db, operation["assignee"])
+                if assignee_before:
+                    reused_assignees.add(assignee.id)
+                else:
+                    created_assignees.add(assignee.id)
+
+            for _ in range(operation["quantity"]):
+                inventory_code = generate_inventory_code(db, location.code)
+                asset = Asset(
+                    inventory_code=inventory_code,
+                    item_id=item.id,
+                    current_location_id=location.id,
+                    assignee_id=assignee.id if assignee else None,
+                    assigned_to=assignee.name if assignee else None,
+                    status="ASSEGNATO" if assignee else "IN_SEDE",
+                    notes=operation["notes"] or None,
+                )
+                db.add(asset)
+                db.flush()
+
+                create_asset_log(
+                    db,
+                    asset.id,
+                    "CREATE",
+                    f"Asset creato da import Excel in sede {location.code} - {location.name}",
+                )
+
+                if assignee:
+                    create_asset_log(
+                        db,
+                        asset.id,
+                        "ASSIGN",
+                        f"Asset assegnato a {assignee.name} da import Excel",
+                    )
+
+                created_assets += 1
+
+        if operation["type"] == "STOCK":
+            stock = (
+                db.query(StockCard)
+                .filter(
+                    StockCard.item_id == item.id,
+                    StockCard.location_id == location.id,
+                )
+                .first()
+            )
+
+            if stock:
+                updated_stockcards += 1
+                if operation["min_threshold"] is not None:
+                    stock.min_threshold = operation["min_threshold"]
+                if operation["notes"]:
+                    stock.notes = operation["notes"]
+            else:
+                stock = StockCard(
+                    item_id=item.id,
+                    location_id=location.id,
+                    quantity=0,
+                    min_threshold=operation["min_threshold"] or 0,
+                    notes=operation["notes"] or None,
+                )
+                db.add(stock)
+                db.flush()
+                created_stockcards += 1
+
+            if operation["quantity"] > 0:
+                stock.quantity += operation["quantity"]
+                movement = StockMovement(
+                    stock_card_id=stock.id,
+                    movement_type="LOAD",
+                    quantity=operation["quantity"],
+                    notes="Carico iniziale da import Excel",
+                )
+                db.add(movement)
+
+    return {
+        "created_assets": created_assets,
+        "created_stockcards": created_stockcards,
+        "updated_stockcards": updated_stockcards,
+        "created_items": len(created_items),
+        "reused_items": len(reused_items),
+        "created_assignees": len(created_assignees),
+        "reused_assignees": len(reused_assignees),
     }
 
 
@@ -802,6 +1328,146 @@ def global_search(q: str = ""):
             "query": query,
             "results": results,
         }
+    finally:
+        db.close()
+
+
+@app.get("/imports/template.xlsx")
+def import_template_xlsx():
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = IMPORT_SHEET_NAME
+    sheet.append(IMPORT_COLUMNS)
+    sheet.append([
+        "ASSET",
+        "LE1",
+        "Informatica",
+        "Notebook didattico",
+        "Lenovo",
+        "ThinkPad E14",
+        "SI",
+        2,
+        "",
+        "Asset iniziale da import",
+        "Mario Rossi",
+    ])
+    sheet.append([
+        "STOCK",
+        "LE1",
+        "Consumabili",
+        "Quaderno A4",
+        "",
+        "",
+        "NO",
+        50,
+        10,
+        "Dotazione iniziale",
+        "",
+    ])
+
+    header_fill = PatternFill("solid", fgColor="E5E7EB")
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = sheet.dimensions
+
+    widths = {
+        "A": 14,
+        "B": 12,
+        "C": 24,
+        "D": 28,
+        "E": 18,
+        "F": 24,
+        "G": 14,
+        "H": 12,
+        "I": 16,
+        "J": 36,
+        "K": 28,
+    }
+    for column, width in widths.items():
+        sheet.column_dimensions[column].width = width
+
+    instructions = workbook.create_sheet("Istruzioni")
+    instructions.append(["Campo", "Descrizione"])
+    instructions.append(["tipo", "ASSET per beni serializzati, STOCK per consumabili"])
+    instructions.append(["sede", "Codice sede esistente, es. LE1"])
+    instructions.append(["categoria", "Categoria da riusare o creare"])
+    instructions.append(["nome", "Nome item da riusare o creare"])
+    instructions.append(["serializzato", "SI per ASSET, NO per STOCK"])
+    instructions.append(["quantita", "Numero asset da creare o pezzi stock da caricare"])
+    instructions.append(["soglia_minima", "Solo per STOCK, opzionale"])
+    instructions.append(["assegnatario", "Solo per ASSET, crea/riusa un assegnatario PERSON"])
+    for cell in instructions[1]:
+        cell.font = Font(bold=True)
+        cell.fill = header_fill
+    instructions.column_dimensions["A"].width = 22
+    instructions.column_dimensions["B"].width = 72
+
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=template-import-inventario.xlsx"},
+    )
+
+
+async def read_import_upload(file: UploadFile):
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Carica un file .xlsx valido.")
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail="File vuoto o non leggibile.")
+
+    return file_bytes
+
+
+@app.post("/imports/preview")
+async def import_preview(file: UploadFile = File(...)):
+    file_bytes = await read_import_upload(file)
+    db = SessionLocal()
+
+    try:
+        return build_import_preview(file_bytes, db)
+    finally:
+        db.close()
+
+
+@app.post("/imports/commit")
+async def import_commit(file: UploadFile = File(...)):
+    file_bytes = await read_import_upload(file)
+    db = SessionLocal()
+
+    try:
+        plan = build_import_preview(file_bytes, db)
+        if not plan["can_commit"]:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Import non confermabile: correggi gli errori in preview.",
+                    "preview": plan,
+                },
+            )
+
+        committed = commit_import_operations(plan, db)
+        db.commit()
+
+        return {
+            "committed": True,
+            "summary": plan["summary"],
+            "result": committed,
+        }
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

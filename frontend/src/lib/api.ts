@@ -124,6 +124,49 @@ export type GlobalSearchResponse = {
   };
 };
 
+export type ImportPreviewRow = {
+  row_number: number;
+  type: string;
+  description: string;
+  status: "VALID" | "WARNING" | "ERROR";
+  message: string;
+};
+
+export type ImportPreviewSummary = {
+  total_rows: number;
+  valid_rows: number;
+  warning_rows: number;
+  error_rows: number;
+  items_to_create: number;
+  items_to_reuse: number;
+  categories_to_create: number;
+  asset_to_create: number;
+  stockcard_to_create: number;
+  stockcard_to_update: number;
+  assignee_to_create: number;
+  assignee_to_reuse: number;
+};
+
+export type ImportPreviewResponse = {
+  rows: ImportPreviewRow[];
+  summary: ImportPreviewSummary;
+  can_commit: boolean;
+};
+
+export type ImportCommitResponse = {
+  committed: boolean;
+  summary: ImportPreviewSummary;
+  result: {
+    created_assets: number;
+    created_stockcards: number;
+    updated_stockcards: number;
+    created_items: number;
+    reused_items: number;
+    created_assignees: number;
+    reused_assignees: number;
+  };
+};
+
 export async function getAssets(): Promise<Asset[]> {
   const res = await fetch(`${API_BASE}/assets`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero degli asset");
@@ -328,6 +371,44 @@ export function getStocksExportUrl() {
 
 export function getEventsExportUrl() {
   return `${API_BASE}/exports/events.xlsx`;
+}
+
+export function getImportTemplateUrl() {
+  return `${API_BASE}/imports/template.xlsx`;
+}
+
+export async function previewImport(file: File): Promise<ImportPreviewResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE}/imports/preview`, {
+    method: "POST",
+    cache: "no-store",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
+}
+
+export async function commitImport(file: File): Promise<ImportCommitResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE}/imports/commit`, {
+    method: "POST",
+    cache: "no-store",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+
+  return res.json();
 }
 
 export async function getStocks(): Promise<StockCard[]> {

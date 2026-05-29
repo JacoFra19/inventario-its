@@ -446,6 +446,19 @@ export default async function Home() {
           </p>
         </Link>
 
+        <Link
+          href="/imports"
+          className="rounded-3xl bg-white p-6 text-gray-900 shadow ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
+        >
+          <p className="text-sm uppercase tracking-wide text-gray-500">
+            Setup dati
+          </p>
+          <h2 className="mt-2 text-2xl font-bold">Import Excel</h2>
+          <p className="mt-2 text-gray-600">
+            Valida e importa asset e stock da un file Excel strutturato.
+          </p>
+        </Link>
+
         <SectionCard className="md:col-span-2 xl:col-span-6" title="In evoluzione" description="Prossimi moduli">
           <ul className="mt-3 space-y-2 text-gray-600">
             <li>• alert ritardi e incongruenze</li>

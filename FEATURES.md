@@ -8,6 +8,7 @@ Inventario ITS e' una webapp gestionale per inventario fisico e logistico. Le fu
 - anagrafica assegnatari per persone, reparti e riferimenti operativi;
 - asset serializzati con codici inventariali univoci;
 - stock e consumabili non serializzati;
+- import Excel per popolamento iniziale inventario;
 - eventi e fiere con materiali in uscita e rientro;
 - QR code per asset inventariali;
 - dashboard operativa con metriche, alert e scorciatoie.
@@ -36,6 +37,7 @@ Sono presenti card di navigazione verso:
 - Asset;
 - Item;
 - Assegnatari;
+- Import Excel;
 - Scanner QR;
 - Stock e consumabili;
 - Eventi e fiere;
@@ -242,6 +244,58 @@ Endpoint backend principali:
 - `POST /stocks/{stock_id}/movement`
 - `GET /stocks/{stock_id}/history`
 - `GET /exports/stocks.xlsx`
+
+## Import Excel
+
+Import Excel v1 permette di popolare rapidamente inventario iniziale, dati realistici di test e carichi stock da file `.xlsx`.
+
+Backend:
+
+- endpoint `GET /imports/template.xlsx` per scaricare un template Excel;
+- endpoint `POST /imports/preview` per validare un file senza scrivere dati;
+- endpoint `POST /imports/commit` per confermare l'import dopo preview valida;
+- lettura del foglio principale `Import`;
+- limite iniziale di 1000 righe importabili;
+- parsing tramite `openpyxl`;
+- upload file tramite `python-multipart`.
+
+Colonne template:
+
+- `tipo`: `ASSET` o `STOCK`;
+- `sede`: codice sede esistente;
+- `categoria`: categoria da riusare o creare;
+- `nome`: nome item da riusare o creare;
+- `marca`;
+- `modello`;
+- `serializzato`: `SI` per asset, `NO` per stock;
+- `quantita`;
+- `soglia_minima`: usata per stock;
+- `note`;
+- `assegnatario`: usato per asset.
+
+Regole import:
+
+- la preview non scrive dati;
+- il commit non parte se ci sono errori bloccanti;
+- sedi non valide e righe incomplete bloccano l'import;
+- categorie e item coerenti vengono riusati o creati;
+- per `ASSET` vengono creati N asset usando il generatore codice inventariale esistente;
+- per `STOCK` viene creata o aggiornata la stockcard per coppia item/sede;
+- il carico stock viene registrato come movimento `LOAD`;
+- assegnatari valorizzati su righe asset vengono riusati o creati come `PERSON`;
+- assegnatari su righe stock vengono ignorati con warning;
+- nessuna operazione distruttiva viene eseguita.
+
+Frontend:
+
+- pagina `/imports`;
+- download template Excel;
+- upload file `.xlsx`;
+- preview riga per riga con `DataTable`;
+- riepilogo numerico di righe valide, warning, errori, asset, item, stockcard e assegnatari;
+- pulsante `Conferma import` abilitato solo senza errori;
+- conferma tramite `ConfirmDialog`;
+- feedback Sonner per preview e commit.
 
 ## Eventi
 
@@ -471,6 +525,7 @@ Funzionalita' backend principali:
 - endpoint alert operativi `GET /alerts`;
 - endpoint attività recenti `GET /dashboard/activity`;
 - endpoint export Excel `GET /exports/assets.xlsx`, `GET /exports/stocks.xlsx`, `GET /exports/events.xlsx`;
+- endpoint import Excel `GET /imports/template.xlsx`, `POST /imports/preview`, `POST /imports/commit`;
 - endpoint ricerca globale `GET /search?q=...`;
 - endpoint assegnatari `GET /assignees`, `GET /assignees/{assignee_id}`, `POST /assignees`, `PUT /assignees/{assignee_id}`, `DELETE /assignees/{assignee_id}`;
 - ricerca asset base con `GET /assets-search`.
@@ -509,6 +564,7 @@ Regole implementate nel codice:
 - asset e stock sono domini separati;
 - assegnatari strutturati collegano asset tramite `assignee_id`;
 - assegnatari con asset collegati vengono disattivati invece di essere eliminati definitivamente;
+- import Excel non distruttivo: preview obbligatoria lato UI e commit bloccato in presenza di errori;
 - codice inventariale asset generato per sede con formato `ITST-{SEDE}-{0000}`;
 - progressivo asset gestito con `LocationCounter`;
 - item non eliminabile se ha asset collegati;
