@@ -81,6 +81,24 @@ export type DashboardActivity = {
   references: Record<string, string | number | null>;
 };
 
+export type GlobalSearchResult = {
+  type: "asset" | "item" | "stock" | "event";
+  title: string;
+  description: string;
+  href: string;
+  metadata: Record<string, string | number | boolean | null>;
+};
+
+export type GlobalSearchResponse = {
+  query: string;
+  results: {
+    assets: GlobalSearchResult[];
+    items: GlobalSearchResult[];
+    stocks: GlobalSearchResult[];
+    events: GlobalSearchResult[];
+  };
+};
+
 export async function getAssets(): Promise<Asset[]> {
   const res = await fetch(`${API_BASE}/assets`, { cache: "no-store" });
   if (!res.ok) throw new Error("Errore nel recupero degli asset");
@@ -154,6 +172,22 @@ export async function getDashboardActivity(): Promise<DashboardActivity[]> {
 
   if (!res.ok) {
     throw new Error("Errore nel recupero delle attività recenti");
+  }
+
+  return res.json();
+}
+
+export async function searchGlobal(
+  query: string,
+  signal?: AbortSignal
+): Promise<GlobalSearchResponse> {
+  const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`, {
+    cache: "no-store",
+    signal,
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore durante la ricerca globale");
   }
 
   return res.json();

@@ -26,6 +26,7 @@ La dashboard principale (`frontend/src/app/page.tsx`) mostra una vista sintetica
 - asset in evento;
 - asset mancanti;
 - eventi aperti;
+- ricerca globale su asset, item, stock ed eventi;
 - alert operativi aggregati dal backend;
 - attività recenti aggregate dal backend.
 
@@ -62,6 +63,16 @@ La dashboard include inoltre la sezione "Attività recenti", con:
 - data e ora leggibili;
 - empty state quando non sono presenti attività;
 - attività cliccabili quando il backend fornisce un riferimento utile.
+
+La dashboard include una prima versione di "Ricerca globale", con:
+
+- ricerca trasversale su asset, item, stockcard ed eventi;
+- attivazione dopo almeno 2 caratteri;
+- debounce client semplice;
+- risultati raggruppati per Asset, Item, Stock ed Eventi;
+- massimo 5 risultati per categoria;
+- stati loading, empty state ed errore;
+- risultati cliccabili verso le pagine frontend utili.
 
 ## Items
 
@@ -324,6 +335,34 @@ Frontend:
 - link verso asset, eventi o stock quando disponibili;
 - empty state se non sono presenti attività.
 
+## Ricerca Globale
+
+La prima versione della Ricerca Globale permette di cercare rapidamente dati operativi trasversali dalla dashboard.
+
+Backend:
+
+- endpoint `GET /search?q=...`;
+- risposta raggruppata in `assets`, `items`, `stocks` ed `events`;
+- ogni risultato include `type`, `title`, `description`, `href` e `metadata`;
+- limite iniziale di 5 risultati per categoria;
+- query sotto 2 caratteri restituiscono gruppi vuoti.
+
+Campi cercati:
+
+- asset: codice inventariale, note, stato, assegnatario e item collegato;
+- item: nome, categoria, marca e modello;
+- stockcard: item collegato, sede, categoria e note;
+- eventi: nome, note, luogo/sede, referente e stato.
+
+Frontend:
+
+- sezione "Ricerca globale" nella dashboard;
+- chiamata API solo dopo almeno 2 caratteri;
+- debounce client di base;
+- risultati raggruppati per Asset, Item, Stock ed Eventi;
+- gestione di stato neutro, loading, empty state ed errore;
+- link diretti verso dettaglio asset, catalogo item, stock ed evento selezionato.
+
 ## Export Excel
 
 Il primo sistema export Excel e' implementato per esportazioni complete, senza filtri avanzati.
@@ -388,6 +427,7 @@ Funzionalita' backend principali:
 - endpoint alert operativi `GET /alerts`;
 - endpoint attività recenti `GET /dashboard/activity`;
 - endpoint export Excel `GET /exports/assets.xlsx`, `GET /exports/stocks.xlsx`, `GET /exports/events.xlsx`;
+- endpoint ricerca globale `GET /search?q=...`;
 - ricerca asset base con `GET /assets-search`.
 
 Modelli principali:

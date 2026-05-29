@@ -13,6 +13,7 @@ import StatCard from "@/components/ui/StatCard";
 import SectionCard from "@/components/ui/SectionCard";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 import RecentActivitiesSection from "@/components/RecentActivitiesSection";
+import GlobalSearch from "@/components/GlobalSearch";
 
 export default async function Home() {
   const [assets, stocks, events, items, alerts, activities] = await Promise.all([
@@ -78,6 +79,8 @@ export default async function Home() {
           trasferimenti e QR inventariali.
         </p>
       </section>
+
+      <GlobalSearch />
 
       <section className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard

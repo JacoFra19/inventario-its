@@ -113,6 +113,28 @@ def item_export_label(item: Item | None):
     return " - ".join(parts)
 
 
+def text_matches(query: str, *values: object):
+    haystack = " ".join(
+        str(value).lower()
+        for value in values
+        if value is not None and str(value).strip()
+    )
+
+    return query in haystack
+
+
+def empty_search_response(query: str):
+    return {
+        "query": query,
+        "results": {
+            "assets": [],
+            "items": [],
+            "stocks": [],
+            "events": [],
+        },
+    }
+
+
 def style_export_sheet(sheet):
     from openpyxl.styles import Font, PatternFill
 
@@ -546,6 +568,187 @@ def get_dashboard_activity():
         )
 
         return sorted_activities[:20]
+    finally:
+        db.close()
+
+
+@app.get("/search")
+def global_search(q: str = ""):
+    query = q.strip()
+    normalized_query = query.lower()
+
+    if len(normalized_query) < 2:
+        return empty_search_response(query)
+
+    db = SessionLocal()
+
+    try:
+        categories = {category.id: category for category in db.query(Category).all()}
+        locations = {location.id: location for location in db.query(Location).all()}
+        items = {item.id: item for item in db.query(Item).all()}
+
+        results = {
+            "assets": [],
+            "items": [],
+            "stocks": [],
+            "events": [],
+        }
+
+        for asset in db.query(Asset).order_by(Asset.id.desc()).all():
+            if len(results["assets"]) >= 5:
+                break
+
+            item = items.get(asset.item_id)
+            category = categories.get(item.category_id) if item else None
+            location = locations.get(asset.current_location_id)
+
+            if not text_matches(
+                normalized_query,
+                asset.inventory_code,
+                asset.notes,
+                asset.status,
+                asset.assigned_to,
+                item.name if item else None,
+                item.brand if item else None,
+                item.model if item else None,
+                category.name if category else None,
+            ):
+                continue
+
+            item_label = item_export_label(item) or "Item non trovato"
+            location_label = location_export_label(location) or "Sede non trovata"
+
+            results["assets"].append({
+                "type": "asset",
+                "title": asset.inventory_code,
+                "description": f"{item_label} - {asset.status} - {location_label}",
+                "href": f"/assets/{asset.inventory_code}",
+                "metadata": {
+                    "asset_id": asset.id,
+                    "inventory_code": asset.inventory_code,
+                    "status": asset.status,
+                    "assigned_to": asset.assigned_to,
+                    "item_id": asset.item_id,
+                    "location_id": asset.current_location_id,
+                },
+            })
+
+        for item in db.query(Item).order_by(Item.id.desc()).all():
+            if len(results["items"]) >= 5:
+                break
+
+            category = categories.get(item.category_id)
+
+            if not text_matches(
+                normalized_query,
+                item.name,
+                category.name if category else None,
+                item.brand,
+                item.model,
+            ):
+                continue
+
+            details = [
+                value
+                for value in [
+                    category.name if category else None,
+                    item.brand,
+                    item.model,
+                    "serializzato" if item.is_serialized else "consumabile",
+                ]
+                if value
+            ]
+
+            results["items"].append({
+                "type": "item",
+                "title": item.name,
+                "description": " - ".join(details),
+                "href": "/items",
+                "metadata": {
+                    "item_id": item.id,
+                    "category_id": item.category_id,
+                    "is_serialized": item.is_serialized,
+                },
+            })
+
+        for stock in db.query(StockCard).order_by(StockCard.id.desc()).all():
+            if len(results["stocks"]) >= 5:
+                break
+
+            item = items.get(stock.item_id)
+            category = categories.get(item.category_id) if item else None
+            location = locations.get(stock.location_id)
+
+            if not text_matches(
+                normalized_query,
+                item.name if item else None,
+                item.brand if item else None,
+                item.model if item else None,
+                category.name if category else None,
+                location.code if location else None,
+                location.name if location else None,
+                stock.notes,
+            ):
+                continue
+
+            item_label = item_export_label(item) or f"Stockcard {stock.id}"
+            location_label = location_export_label(location) or "Sede non trovata"
+
+            results["stocks"].append({
+                "type": "stock",
+                "title": item_label,
+                "description": f"{location_label} - disponibili {stock.quantity}, soglia {stock.min_threshold}",
+                "href": "/stocks",
+                "metadata": {
+                    "stock_card_id": stock.id,
+                    "item_id": stock.item_id,
+                    "location_id": stock.location_id,
+                    "quantity": stock.quantity,
+                    "min_threshold": stock.min_threshold,
+                },
+            })
+
+        for event in db.query(Event).order_by(Event.created_at.desc()).all():
+            if len(results["events"]) >= 5:
+                break
+
+            if not text_matches(
+                normalized_query,
+                event.name,
+                event.notes,
+                event.location,
+                event.status,
+                event.manager,
+            ):
+                continue
+
+            details = [
+                value
+                for value in [
+                    event.location,
+                    event.status,
+                    event.start_date,
+                    event.end_date,
+                ]
+                if value
+            ]
+
+            results["events"].append({
+                "type": "event",
+                "title": event.name,
+                "description": " - ".join(details),
+                "href": f"/events?eventId={event.id}",
+                "metadata": {
+                    "event_id": event.id,
+                    "status": event.status,
+                    "location": event.location,
+                },
+            })
+
+        return {
+            "query": query,
+            "results": results,
+        }
     finally:
         db.close()
 
