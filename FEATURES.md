@@ -449,6 +449,8 @@ Database:
 
 - database relazionale gestito via SQLAlchemy;
 - configurazione `DATABASE_URL` da variabile ambiente;
+- migrazioni database gestite con Alembic in `backend/alembic`;
+- baseline Alembic dello schema attuale;
 - Docker Compose di sviluppo con Postgres 16 e API Python.
 
 ## Regole Di Business
