@@ -97,6 +97,7 @@ export type AlertsResponse = {
 };
 
 export type DashboardActivity = {
+  id: string;
   type: string;
   title: string;
   description: string;
@@ -104,6 +105,15 @@ export type DashboardActivity = {
   category: string;
   severity: string;
   references: Record<string, string | number | null>;
+  href: string | null;
+};
+
+export type ActivityResponse = {
+  items: DashboardActivity[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
 };
 
 export type DashboardLocation = {
@@ -359,6 +369,33 @@ export async function getDashboardActivity(): Promise<DashboardActivity[]> {
 
   if (!res.ok) {
     throw new Error("Errore nel recupero delle attività recenti");
+  }
+
+  return res.json();
+}
+
+export async function getActivity(params: {
+  q?: string;
+  category?: string;
+  severity?: string;
+  limit?: number;
+  offset?: number;
+} = {}): Promise<ActivityResponse> {
+  const searchParams = new URLSearchParams();
+
+  if (params.q) searchParams.set("q", params.q);
+  if (params.category) searchParams.set("category", params.category);
+  if (params.severity) searchParams.set("severity", params.severity);
+  if (params.limit) searchParams.set("limit", String(params.limit));
+  if (params.offset) searchParams.set("offset", String(params.offset));
+
+  const query = searchParams.toString();
+  const res = await fetch(`${API_BASE}/activity${query ? `?${query}` : ""}`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Errore nel recupero del registro attività");
   }
 
   return res.json();

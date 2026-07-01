@@ -64,10 +64,11 @@ La dashboard include inoltre la sezione "Attività recenti", con:
 - massimo 20 attività nella prima versione;
 - visualizzazione compatta iniziale delle ultime 3 attività;
 - espansione con pulsante "Mostra tutte" / "Mostra meno";
-- badge/categoria per asset, stock ed eventi;
+- badge/categoria per asset, stock, eventi, import e assegnazioni;
 - data e ora leggibili;
 - empty state quando non sono presenti attività;
-- attività cliccabili quando il backend fornisce un riferimento utile.
+- attività cliccabili quando il backend fornisce un riferimento utile;
+- link "Visualizza tutto" verso il Registro Attività.
 
 La dashboard include una prima versione di "Ricerca globale", con:
 
@@ -432,9 +433,10 @@ Il sistema Attività Recenti e' implementato come aggregazione backend dei dati 
 Backend:
 
 - endpoint `GET /dashboard/activity`;
+- logica condivisa con il Registro Attività completo;
 - lista ordinata per data decrescente;
 - limite iniziale a 20 attività;
-- ogni attività include `type`, `title`, `description`, `timestamp`, `category`, `severity` e `references`.
+- ogni attività include `id`, `type`, `title`, `description`, `timestamp`, `category`, `severity`, `references` e `href`.
 
 Dati aggregati:
 
@@ -450,11 +452,50 @@ Frontend:
 - sezione "Attività recenti" nella dashboard;
 - visualizzazione iniziale compatta limitata alle ultime 3 attività;
 - pulsante espandibile "Mostra tutte" / "Mostra meno" quando sono presenti piu' di 3 attività;
+- link "Visualizza tutto" verso `/activity`;
 - layout responsive coerente con il design system;
-- badge/categoria per distinguere asset, stock ed eventi;
+- icone categoria per distinguere asset, stock, eventi, import, assegnazioni e trasferimenti;
 - timestamp formattato in italiano;
 - link verso asset, eventi o stock quando disponibili;
 - empty state se non sono presenti attività.
+
+## Registro Attività
+
+Il Registro Attività v1 estende le attività recenti in una pagina dedicata per consultare lo storico operativo.
+
+Backend:
+
+- endpoint `GET /activity`;
+- riuso della stessa aggregazione interna usata da `GET /dashboard/activity`;
+- parametri query supportati:
+  - `q` per ricerca testuale;
+  - `category` per filtrare per categoria;
+  - `severity` per filtrare per severita';
+  - `limit` con default 50 e massimo 100;
+  - `offset` con default 0;
+- risposta paginata con `items`, `total`, `limit`, `offset` e `has_more`;
+- id sintetico stabile per ogni attività;
+- categorie operative `asset`, `stock`, `event`, `import`, `assignee`, `transfer` e `system`;
+- severita' `info`, `success`, `warning` e `critical`;
+- la severita' indica il livello di attenzione richiesto, non il tipo di operazione:
+  - `success` per operazioni completate correttamente;
+  - `warning` per situazioni che richiedono verifica;
+  - `critical` per mancanze, errori o interventi immediati;
+- `href` e `references` per collegamenti rapidi quando disponibili.
+
+Frontend:
+
+- pagina `/activity` con titolo "Registro Attività";
+- link dalla sezione "Attività recenti" della dashboard;
+- ricerca testuale con debounce leggero;
+- filtri categoria e severita';
+- lista ordinata per data decrescente;
+- raggruppamento semplice per giorno;
+- pulsante "Carica altro" basato su `offset` e `has_more`;
+- icone SVG categoria con ingombro uniforme;
+- loading, empty ed error state;
+- attività cliccabili quando `href` e' disponibile;
+- layout responsive coerente con il design system.
 
 ## Ricerca Globale
 
@@ -603,6 +644,7 @@ Funzionalita' backend principali:
 - endpoint `GET /ping`;
 - endpoint alert operativi `GET /alerts`;
 - endpoint attività recenti `GET /dashboard/activity`;
+- endpoint registro attività `GET /activity`;
 - endpoint panoramica sedi `GET /dashboard/locations`;
 - endpoint export Excel `GET /exports/assets.xlsx`, `GET /exports/stocks.xlsx`, `GET /exports/events.xlsx`;
 - endpoint import Excel `GET /imports/template.xlsx`, `POST /imports/preview`, `POST /imports/commit`;

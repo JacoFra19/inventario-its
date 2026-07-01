@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { DashboardActivity } from "@/lib/api";
+import ActivityCategoryIcon from "@/components/ActivityCategoryIcon";
 import SectionCard from "@/components/ui/SectionCard";
 import SecondaryButton from "@/components/ui/SecondaryButton";
 
@@ -26,12 +27,16 @@ function activityBadgeClass(severity: string) {
   return "border-blue-200 bg-blue-100 text-blue-700";
 }
 
-function activityIcon(category: string) {
-  if (category === "asset") return "AS";
-  if (category === "stock") return "ST";
-  if (category === "event") return "EV";
+function activityCategoryLabel(category: string) {
+  if (category === "asset") return "Asset";
+  if (category === "stock") return "Stock";
+  if (category === "event") return "Eventi";
+  if (category === "import") return "Import";
+  if (category === "assignee") return "Assegnazioni";
+  if (category === "transfer") return "Trasferimenti";
+  if (category === "system") return "Sistema";
 
-  return "OP";
+  return category;
 }
 
 function formatActivityDate(value: string) {
@@ -54,14 +59,23 @@ export default function RecentActivitiesSection({
       title="Attività recenti"
       description="Ultime operazioni registrate su asset, stock ed eventi."
       actions={
-        canToggle ? (
+        <>
           <SecondaryButton
-            onClick={() => setExpanded((current) => !current)}
+            href="/activity"
             className="px-4 py-2 text-sm text-blue-700 hover:bg-blue-50"
           >
-            {expanded ? "Mostra meno ↑" : "Mostra tutte ↓"}
+            Visualizza tutto →
           </SecondaryButton>
-        ) : undefined
+
+          {canToggle && (
+            <SecondaryButton
+              onClick={() => setExpanded((current) => !current)}
+              className="px-4 py-2 text-sm text-blue-700 hover:bg-blue-50"
+            >
+              {expanded ? "Mostra meno ↑" : "Mostra tutte ↓"}
+            </SecondaryButton>
+          )}
+        </>
       }
     >
       {activities.length === 0 ? (
@@ -72,15 +86,17 @@ export default function RecentActivitiesSection({
         <div className="space-y-3">
           {visibleActivities.map((activity, index) => {
             const href =
-              typeof activity.references.href === "string"
-                ? activity.references.href
+              typeof activity.href === "string"
+                ? activity.href
+                : typeof activity.references.href === "string"
+                  ? activity.references.href
                 : null;
 
             const content = (
               <div className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md md:flex-row md:items-start md:justify-between">
                 <div className="flex gap-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gray-900 text-xs font-bold text-white">
-                    {activityIcon(activity.category)}
+                    <ActivityCategoryIcon category={activity.category} />
                   </div>
 
                   <div>
@@ -89,7 +105,7 @@ export default function RecentActivitiesSection({
                         {activity.title}
                       </h3>
                       <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${activityBadgeClass(activity.severity)}`}>
-                        {activity.category}
+                        {activityCategoryLabel(activity.category)}
                       </span>
                     </div>
 
