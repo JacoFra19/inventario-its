@@ -167,11 +167,7 @@ export default function AssetsPage() {
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <Link href="/" className="text-blue-600 hover:underline">
-            ← Dashboard
-          </Link>
-
-          <h1 className="mt-4 text-3xl font-bold">Asset</h1>
+          <h1 className="text-3xl font-bold">Asset</h1>
           <p className="text-gray-600">
             Gestione beni inventariati, codici univoci e QR.
           </p>

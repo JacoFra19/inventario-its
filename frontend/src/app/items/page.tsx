@@ -350,8 +350,6 @@ export default function ItemsPage() {
 
       <div className="mx-auto max-w-7xl">
         <PageHeader
-          backHref="/"
-          backLabel="Dashboard"
           eyebrow="Catalogo tecnico"
           title="Gestione item"
           description="Modifica categorie, specifiche tecniche e informazioni dei beni."

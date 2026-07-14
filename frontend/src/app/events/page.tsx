@@ -475,8 +475,6 @@ export default function EventsPage() {
 
       <div className="print:hidden">
         <PageHeader
-          backHref="/"
-          backLabel="Dashboard"
           eyebrow="Logistica eventi"
           title="Eventi e fiere"
           description="Gestione del materiale in uscita per eventi, fiere e attività esterne."

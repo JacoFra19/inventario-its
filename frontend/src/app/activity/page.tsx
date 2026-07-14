@@ -147,8 +147,6 @@ export default function ActivityPage() {
         eyebrow="Diario operativo"
         title="Registro Attività"
         description="Storico consultabile delle operazioni registrate su asset, stock, eventi, import e assegnazioni."
-        backHref="/"
-        backLabel="Dashboard"
       />
 
       <SectionCard

@@ -283,8 +283,6 @@ export default function AssigneesPage() {
         eyebrow="Anagrafica"
         title="Assegnatari"
         description="Gestisci persone, reparti o riferimenti a cui assegnare asset inventariali."
-        backHref="/"
-        backLabel="Dashboard"
       />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">

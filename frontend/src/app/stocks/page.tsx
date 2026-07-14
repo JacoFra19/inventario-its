@@ -266,8 +266,6 @@ export default function StocksPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
       <PageHeader
-        backHref="/"
-        backLabel="Dashboard"
         eyebrow="Magazzino consumabili"
         title="Stock e consumabili"
         description="Gestione quantità per gadget, materiale promozionale, cavi e consumabili."

@@ -24,23 +24,25 @@ export default function LocationsMapSection({ locations }: LocationsMapSectionPr
   const mappedCount = locations.filter((location) => location.lat !== null && location.lng !== null).length;
 
   return (
-    <SectionCard
-      className="mb-8"
-      title="Mappa Sedi"
-      description="Visualizzazione geografica operativa delle sedi ITS in Puglia."
-      actions={
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge status="INFO" label={`${mappedCount} marker`} size="sm" />
-          {criticalCount > 0 && (
-            <StatusBadge status="MANCANTE" label={`${criticalCount} critiche`} size="sm" />
-          )}
-          {warningCount > 0 && (
-            <StatusBadge status="WARNING" label={`${warningCount} warning`} size="sm" />
-          )}
-        </div>
-      }
-    >
-      <LocationsMap locations={locations} />
-    </SectionCard>
+    <div id="mappa-sedi" className="scroll-mt-24">
+      <SectionCard
+        className="mb-8"
+        title="Mappa Sedi"
+        description="Visualizzazione geografica operativa delle sedi ITS in Puglia."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge status="INFO" label={`${mappedCount} marker`} size="sm" />
+            {criticalCount > 0 && (
+              <StatusBadge status="MANCANTE" label={`${criticalCount} critiche`} size="sm" />
+            )}
+            {warningCount > 0 && (
+              <StatusBadge status="WARNING" label={`${warningCount} warning`} size="sm" />
+            )}
+          </div>
+        }
+      >
+        <LocationsMap locations={locations} />
+      </SectionCard>
+    </div>
   );
 }

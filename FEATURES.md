@@ -614,6 +614,12 @@ Frontend:
 
 Sistema UI attualmente implementato:
 
+- App Shell globale applicato alle pagine applicative;
+- sidebar desktop con navigazione raggruppata per Dashboard, Inventario, Operatività, Controllo e Strumenti;
+- sidebar collassabile su desktop con stato salvato in `localStorage`;
+- drawer mobile apribile da topbar e chiuso dopo la navigazione;
+- route attiva evidenziata nella navigazione globale;
+- topbar compatta con contesto pagina e spazio per future azioni utente/notifiche;
 - layout responsive basato su Tailwind;
 - palette neutra e moderna;
 - card, badge e sezioni operative;

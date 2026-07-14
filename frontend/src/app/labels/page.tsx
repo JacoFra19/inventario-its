@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Asset, getAssets } from "@/lib/api";
 
@@ -38,11 +37,7 @@ export default function LabelsPage() {
     <main className="min-h-screen bg-gray-50 p-8 print:bg-white">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between print:hidden">
         <div>
-          <Link href="/" className="text-blue-600 hover:underline">
-            ← Dashboard
-          </Link>
-
-          <h1 className="mt-4 text-3xl font-bold">
+          <h1 className="text-3xl font-bold">
             Etichette QR
           </h1>
 

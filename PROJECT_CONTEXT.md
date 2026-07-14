@@ -25,6 +25,18 @@ Il frontend comunica con il backend tramite funzioni tipizzate in `frontend/src/
 
 Il backend concentra attualmente modelli, endpoint e regole operative in `backend/app`, con seed iniziale di sedi/categorie.
 
+## Frontend App Shell
+
+Le pagine applicative sono racchiuse da un App Shell globale in `frontend/src/components/AppShell.tsx`, applicato dal root layout Next.
+
+Convenzioni:
+
+- la navigazione globale e' centralizzata nella configurazione menu di `AppShell`;
+- nuove pagine applicative devono essere aggiunte al menu globale quando diventano navigabili;
+- evitare menu locali duplicati o link generici "torna alla dashboard" quando la sidebar copre lo stesso bisogno;
+- `PageHeader` resta il titolo contestuale della pagina, mentre la topbar dello shell fornisce solo orientamento globale compatto;
+- la voce "Mappa sedi" punta alla sezione dashboard dedicata finche' non esiste una pagina autonoma.
+
 ## Database Migrations
 
 Alembic e' configurato in `backend/alembic.ini` con script in `backend/alembic`. Le migrazioni leggono `DATABASE_URL` dall'ambiente e usano `Base.metadata` dai modelli SQLAlchemy esistenti come `target_metadata`.

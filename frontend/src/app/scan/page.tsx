@@ -2,7 +2,6 @@
 
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 declare global {
@@ -109,11 +108,7 @@ export default function ScanPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
-      <Link href="/" className="text-blue-600 hover:underline">
-        ← Dashboard
-      </Link>
-
-      <section className="mt-6 rounded-3xl bg-gray-900 p-8 text-white shadow">
+      <section className="rounded-3xl bg-gray-900 p-8 text-white shadow">
         <p className="text-sm uppercase tracking-[0.3em] text-gray-300">
           Scanner QR
         </p>

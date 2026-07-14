@@ -98,6 +98,16 @@ Il progetto è ormai strutturato come un vero gestionale e viene sviluppato segu
 
 # Roadmap
 
+## Milestone Corrente — UX 2.0
+
+- [x] Avvio App Shell gestionale globale
+- [x] Sidebar desktop con gruppi di navigazione
+- [x] Sidebar collassabile con persistenza locale
+- [x] Drawer mobile per navigazione responsive
+- [x] Route attiva evidenziata
+- [ ] Razionalizzazione successiva della dashboard
+- [ ] Rifinitura progressiva dei layout pagina dentro il nuovo shell
+
 ## Versione 1.0 — Uso Operativo Reale
 
 ### Obiettivo

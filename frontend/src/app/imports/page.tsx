@@ -148,8 +148,6 @@ export default function ImportsPage() {
         eyebrow="Import dati"
         title="Import Excel"
         description="Carica un file Excel per popolare asset serializzati e stock consumabili."
-        backHref="/"
-        backLabel="Dashboard"
         actions={
           <SecondaryButton href={getImportTemplateUrl()} className="px-4 py-2 text-sm">
             Scarica template
