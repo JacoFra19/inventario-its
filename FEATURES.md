@@ -235,13 +235,14 @@ La pagina stock (`frontend/src/app/stocks/page.tsx`) gestisce item non serializz
 
 Funzionalita' presenti:
 
-- lista stockcard selezionabile;
+- pagina migrata al Workspace Pattern operativo;
+- lista stockcard con `DataTable` compatta e selezione contestuale;
 - filtro per ricerca testuale;
 - filtro per sede;
 - filtro per categoria;
 - filtro "solo sotto soglia";
-- contatori per schede stock, pezzi disponibili e sotto soglia;
-- creazione stockcard per item non serializzato;
+- KPI compatte per articoli monitorati, quantita' totale, sotto soglia ed esauriti;
+- creazione stockcard per item non serializzato tramite pannello aperto su richiesta;
 - registrazione movimenti stock;
 - visualizzazione storico movimenti della stockcard selezionata;
 - esportazione Excel completa di stockcard e movimenti stock;
@@ -622,6 +623,7 @@ Sistema UI attualmente implementato:
 - topbar compatta con contesto pagina e spazio per future azioni utente/notifiche;
 - Workspace Pattern avviato sulle pagine operative;
 - pagina Asset migrata come pagina pilota del Workspace Pattern;
+- pagina Stock migrata al Workspace Pattern con toolbar azioni, KPI compatte, filtri operativi e DataTable risultati;
 - header operativo con una sola azione primaria e azioni secondarie raggruppate;
 - toolbar azioni Asset rifinita con pulsanti uniformi e gerarchia primaria/secondaria;
 - form di creazione asset aperto su richiesta tramite azione dedicata;

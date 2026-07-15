@@ -113,7 +113,7 @@ Il progetto è ormai strutturato come un vero gestionale e viene sviluppato segu
 - [x] Form creazione asset aperto su richiesta
 - [x] Metriche asset compatte
 - [x] Filtri asset in toolbar operativa
-- [ ] Migrazione pagina Stock al Workspace Pattern
+- [x] Migrazione pagina Stock al Workspace Pattern
 - [ ] Migrazione pagina Eventi al Workspace Pattern
 - [ ] Migrazione pagina Assegnatari al Workspace Pattern
 - [ ] Razionalizzazione successiva della dashboard
