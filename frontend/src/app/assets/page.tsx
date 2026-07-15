@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
+import CompactStatCard from "@/components/ui/CompactStatCard";
 import DataTable from "@/components/ui/DataTable";
 import type { DataTableColumn } from "@/components/ui/DataTable";
+import PrimaryButton from "@/components/ui/PrimaryButton";
 import SecondaryButton from "@/components/ui/SecondaryButton";
+import WorkspaceHeader from "@/components/ui/WorkspaceHeader";
 import { toast } from "sonner";
 import {
   Asset,
@@ -21,6 +23,7 @@ import {
 
 export default function AssetsPage() {
   const searchParams = useSearchParams();
+  const itemSelectRef = useRef<HTMLSelectElement | null>(null);
   const statusFromUrl = searchParams.get("status");
   const locationFromUrl = searchParams.get("locationId");
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -31,9 +34,11 @@ export default function AssetsPage() {
   const [locationCode, setLocationCode] = useState("");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [locationFilter, setLocationFilter] = useState("ALL");
+  const [createPanelOpen, setCreatePanelOpen] = useState(false);
 
   useEffect(() => {
     if (statusFromUrl) {
@@ -48,20 +53,36 @@ export default function AssetsPage() {
   }, [locationFromUrl]);
 
   async function loadData() {
-    const [assetsData, itemsData, locationsData] = await Promise.all([
-      getAssets(),
-      getItems(),
-      getLocations(),
-    ]);
+    setDataLoading(true);
 
-    setAssets(assetsData);
-    setItems(itemsData);
-    setLocations(locationsData);
+    try {
+      const [assetsData, itemsData, locationsData] = await Promise.all([
+        getAssets(),
+        getItems(),
+        getLocations(),
+      ]);
+
+      setAssets(assetsData);
+      setItems(itemsData);
+      setLocations(locationsData);
+    } finally {
+      setDataLoading(false);
+    }
   }
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!createPanelOpen) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      itemSelectRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [createPanelOpen]);
 
   async function handleCreateAsset(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +101,7 @@ export default function AssetsPage() {
       setLocationCode("");
       setNotes("");
       await loadData();
+      setCreatePanelOpen(false);
       toast.success("Asset creato correttamente");
     } catch (error) {
       console.error(error);
@@ -129,300 +151,323 @@ export default function AssetsPage() {
 
   const uniqueStatuses = Array.from(new Set(assets.map((asset) => asset.status)));
 
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("ALL");
+    setLocationFilter("ALL");
+    window.history.replaceState(null, "", "/assets");
+  }
+
+  function updateStatusFilter(value: string) {
+    setStatusFilter(value);
+    window.history.replaceState(
+      null,
+      "",
+      value === "ALL" ? "/assets" : `/assets?status=${value}`
+    );
+  }
+
+  function updateLocationFilter(value: string) {
+    setLocationFilter(value);
+    window.history.replaceState(
+      null,
+      "",
+      value === "ALL" ? "/assets" : `/assets?locationId=${value}`
+    );
+  }
+
   const assetColumns: DataTableColumn<Asset>[] = [
     {
       key: "id",
       header: "ID",
+      headerClassName: "px-3 py-3",
+      cellClassName: "px-3 py-3",
       render: (asset) => asset.id,
     },
     {
       key: "inventory_code",
       header: "Codice",
-      cellClassName: "font-mono font-semibold text-blue-700",
+      headerClassName: "px-3 py-3",
+      cellClassName: "px-3 py-3 font-mono font-semibold text-blue-700",
       render: (asset) => asset.inventory_code,
     },
     {
       key: "location",
       header: "Sede",
+      headerClassName: "px-3 py-3",
+      cellClassName: "px-3 py-3",
       render: (asset) => locationLabel(asset.current_location_id),
     },
     {
       key: "status",
       header: "Stato",
+      headerClassName: "px-3 py-3",
+      cellClassName: "px-3 py-3",
       render: (asset) => <StatusBadge status={asset.status} />,
     },
     {
       key: "assigned_to",
       header: "Assegnato a",
+      headerClassName: "px-3 py-3",
+      cellClassName: "px-3 py-3",
       render: (asset) => asset.assigned_to ?? "-",
     },
     {
       key: "notes",
       header: "Note",
+      headerClassName: "px-3 py-3",
+      cellClassName: "px-3 py-3",
       render: (asset) => asset.notes ?? "-",
     },
   ];
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Asset</h1>
-          <p className="text-gray-600">
-            Gestione beni inventariati, codici univoci e QR.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <SecondaryButton href={getAssetsExportUrl()}>
-            Esporta Excel
-          </SecondaryButton>
-
-          <Link
-            href="/items"
-            className="rounded-xl border px-5 py-3 text-center font-semibold hover:bg-white"
+    <main className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
+      <WorkspaceHeader
+        description="Gestione beni inventariati, codici univoci, sedi e stato operativo."
+        primaryAction={
+          <PrimaryButton
+            onClick={() => setCreatePanelOpen((current) => !current)}
+            className="h-10 px-4 py-0 text-sm"
           >
-            Catalogo Item
-          </Link>
+            {createPanelOpen ? "Chiudi nuovo asset" : "Nuovo asset"}
+          </PrimaryButton>
+        }
+        secondaryActions={
+          <>
+            <SecondaryButton href={getAssetsExportUrl()} className="h-10 px-4 py-0 text-sm">
+              Esporta Excel
+            </SecondaryButton>
+            <SecondaryButton href="/items" className="h-10 px-4 py-0 text-sm">
+              Catalogo item
+            </SecondaryButton>
+            <SecondaryButton href="/scan" className="h-10 px-4 py-0 text-sm">
+              Apri scanner QR
+            </SecondaryButton>
+          </>
+        }
+      />
 
-          <Link
-            href="/scan"
-            className="rounded-xl bg-gray-900 px-5 py-3 text-center font-semibold text-white shadow hover:bg-black"
-          >
-            Apri Scanner QR
-          </Link>
-        </div>
-      </div>
+      {createPanelOpen && (
+        <section className="mb-5 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm ring-1 ring-gray-100 md:p-5">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-base font-bold text-gray-950">Nuovo asset</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Crea un bene fisico partendo da una tipologia già presente nel catalogo item.
+              </p>
+            </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-2xl bg-white p-5 shadow">
-          <p className="text-sm text-gray-500">Asset totali</p>
-          <p className="mt-2 text-3xl font-bold">{totalAssets}</p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setStatusFilter("IN_SEDE");
-            window.history.replaceState(null, "", "/assets?status=IN_SEDE");
-          }}
-          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-emerald-50"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-gray-500">In sede</p>
-            <StatusBadge status="IN_SEDE" />
+            <button
+              type="button"
+              onClick={() => setCreatePanelOpen(false)}
+              className="self-start rounded-xl border border-gray-100 bg-white px-3 py-2 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 hover:text-gray-950"
+            >
+              Chiudi
+            </button>
           </div>
-          <p className="mt-2 text-3xl font-bold">{inSedeCount}</p>
-        </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setStatusFilter("ASSEGNATO");
-            window.history.replaceState(null, "", "/assets?status=ASSEGNATO");
-          }}
-          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-blue-50"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-gray-500">Assegnati</p>
-            <StatusBadge status="ASSEGNATO" />
-          </div>
-          <p className="mt-2 text-3xl font-bold">{assegnatiCount}</p>
-        </button>
+          <form onSubmit={handleCreateAsset} className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.2fr)_260px_minmax(0,1fr)_160px]">
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-gray-700">
+                Item
+              </span>
+              <select
+                ref={itemSelectRef}
+                className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                value={itemId}
+                onChange={(e) => setItemId(e.target.value)}
+              >
+                <option value="">Seleziona item</option>
+                {items.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} {item.brand ? `- ${item.brand}` : ""} {item.model ? ` ${item.model}` : ""} ({itemCategoryLabel(item)})
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <button
-          type="button"
-          onClick={() => {
-            setStatusFilter("IN_EVENTO");
-            window.history.replaceState(null, "", "/assets?status=IN_EVENTO");
-          }}
-          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-orange-50"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-gray-500">In evento</p>
-            <StatusBadge status="IN_EVENTO" />
-          </div>
-          <p className="mt-2 text-3xl font-bold">{inEventoCount}</p>
-        </button>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-gray-700">
+                Sede
+              </span>
+              <select
+                className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                value={locationCode}
+                onChange={(e) => setLocationCode(e.target.value)}
+              >
+                <option value="">Seleziona sede</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.code}>
+                    {location.code} - {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-        <button
-          type="button"
-          onClick={() => {
-            setStatusFilter("MANCANTE");
-            window.history.replaceState(null, "", "/assets?status=MANCANTE");
-          }}
-          className="rounded-2xl bg-white p-5 text-left shadow transition hover:bg-red-50"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-gray-500">Mancanti</p>
-            <StatusBadge status="MANCANTE" />
-          </div>
-          <p className="mt-2 text-3xl font-bold">{mancantiCount}</p>
-        </button>
-      </div>
+            <label>
+              <span className="mb-1.5 block text-sm font-semibold text-gray-700">
+                Note
+              </span>
+              <input
+                className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm shadow-sm outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                placeholder="Note"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </label>
 
-      <section className="mb-8 rounded-2xl bg-white p-6 shadow">
-        <h2 className="mb-4 text-xl font-bold">Nuovo asset</h2>
-        <p className="mb-4 text-sm text-gray-500">
-          Crea un bene fisico partendo da una tipologia già presente nel catalogo item.
-        </p>
+            <PrimaryButton type="submit" disabled={loading} className="mt-auto px-4 py-3 text-sm">
+              {loading ? "Creo..." : "Crea asset"}
+            </PrimaryButton>
+          </form>
+        </section>
+      )}
 
-        <form onSubmit={handleCreateAsset} className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <select
-            className="rounded-xl border p-3"
-            value={itemId}
-            onChange={(e) => setItemId(e.target.value)}
-          >
-            <option value="">Seleziona item</option>
-            {items.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} {item.brand ? `- ${item.brand}` : ""} {item.model ? ` ${item.model}` : ""} ({itemCategoryLabel(item)})
-              </option>
-            ))}
-          </select>
+      <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <CompactStatCard title="Asset totali" value={totalAssets} description="totale" />
 
-          <select
-            className="rounded-xl border p-3"
-            value={locationCode}
-            onChange={(e) => setLocationCode(e.target.value)}
-          >
-            <option value="">Seleziona sede</option>
-            {locations.map((location) => (
-              <option key={location.id} value={location.code}>
-                {location.code} - {location.name}
-              </option>
-            ))}
-          </select>
+        <CompactStatCard
+          title="In sede"
+          value={inSedeCount}
+          active={statusFilter === "IN_SEDE"}
+          variant="success"
+          onClick={() => updateStatusFilter("IN_SEDE")}
+        />
 
-          <input
-            className="rounded-xl border p-3"
-            placeholder="Note"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+        <CompactStatCard
+          title="Assegnati"
+          value={assegnatiCount}
+          active={statusFilter === "ASSEGNATO"}
+          variant="info"
+          onClick={() => updateStatusFilter("ASSEGNATO")}
+        />
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="rounded-xl bg-blue-600 p-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {loading ? "Creo..." : "Crea asset"}
-          </button>
-        </form>
+        <CompactStatCard
+          title="In evento"
+          value={inEventoCount}
+          active={statusFilter === "IN_EVENTO"}
+          variant="warning"
+          onClick={() => updateStatusFilter("IN_EVENTO")}
+        />
+
+        <CompactStatCard
+          title="Mancanti"
+          value={mancantiCount}
+          active={statusFilter === "MANCANTE"}
+          variant="danger"
+          onClick={() => updateStatusFilter("MANCANTE")}
+        />
       </section>
 
-      <section className="mb-4 rounded-2xl bg-white p-6 shadow">
-        <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-xl font-bold">Filtri asset</h2>
-            <p className="text-sm text-gray-500">
-              Cerca e filtra per stato, sede, assegnazione o note.
+      <section className="mb-4 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm ring-1 ring-gray-100 md:p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-base font-bold text-gray-950">Filtri</h2>
+            <p className="text-sm font-medium text-gray-500">
+              {filteredAssets.length} asset trovati su {assets.length}
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setSearch("");
-              setStatusFilter("ALL");
-              setLocationFilter("ALL");
-              window.history.replaceState(null, "", "/assets");
-            }}
-            className="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-gray-50"
-          >
-            Pulisci filtri
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-600">
-              Ricerca
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_180px_230px_auto] xl:min-w-[820px]">
+            <label>
+              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
+                Ricerca
+              </span>
+              <input
+                className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm shadow-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                placeholder="Codice, sede, stato, assegnatario o note..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </label>
-            <input
-              className="w-full rounded-xl border p-3 shadow-sm"
-              placeholder="Codice, sede, stato, assegnatario o note..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-600">
-              Stato
+            <label>
+              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
+                Stato
+              </span>
+              <select
+                className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm shadow-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                value={statusFilter}
+                onChange={(e) => updateStatusFilter(e.target.value)}
+              >
+                <option value="ALL">Tutti gli stati</option>
+                {uniqueStatuses.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
             </label>
-            <select
-              className="w-full rounded-xl border p-3 shadow-sm"
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                window.history.replaceState(
-                  null,
-                  "",
-                  e.target.value === "ALL" ? "/assets" : `/assets?status=${e.target.value}`
-                );
-              }}
+
+            <label>
+              <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">
+                Sede
+              </span>
+              <select
+                className="h-10 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-sm shadow-sm outline-none transition focus:border-blue-300 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                value={locationFilter}
+                onChange={(e) => updateLocationFilter(e.target.value)}
+              >
+                <option value="ALL">Tutte le sedi</option>
+                {locations.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.code} - {location.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <SecondaryButton
+              onClick={clearFilters}
+              className="mt-auto h-10 px-4 py-0 text-sm"
             >
-              <option value="ALL">Tutti gli stati</option>
-              {uniqueStatuses.map((status) => (
-                <option key={status} value={status}>
-                  {status}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-600">
-              Sede
-            </label>
-            <select
-              className="w-full rounded-xl border p-3 shadow-sm"
-              value={locationFilter}
-              onChange={(e) => {
-                setLocationFilter(e.target.value);
-                window.history.replaceState(
-                  null,
-                  "",
-                  e.target.value === "ALL" ? "/assets" : `/assets?locationId=${e.target.value}`
-                );
-              }}
-            >
-              <option value="ALL">Tutte le sedi</option>
-              {locations.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.code} - {location.name}
-                </option>
-              ))}
-            </select>
+              Azzera filtri
+            </SecondaryButton>
           </div>
         </div>
-
-        <p className="mt-4 text-sm text-gray-500">
-          {filteredAssets.length} asset trovati su {assets.length}
-        </p>
       </section>
 
-      <DataTable
-        columns={assetColumns}
-        rows={filteredAssets}
-        getRowKey={(asset) => asset.id}
-        emptyMessage="Nessun asset trovato con i filtri selezionati."
-        className="rounded-2xl"
-        scrollClassName="max-h-[620px] overflow-auto"
-        rowClassName={(_, index) => (index % 2 === 0 ? "bg-white" : "bg-gray-50/40")}
-        onRowClick={(asset) => {
-          window.location.href = `/assets/${asset.inventory_code}`;
-        }}
-        actions={{
-          header: "Apri",
-          render: () => (
-            <span className="inline-block text-gray-400 transition group-hover:translate-x-1 group-hover:text-blue-600">
-              →
-            </span>
-          ),
-        }}
-      />
+      <section>
+        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-lg font-bold text-gray-950">Risultati</h2>
+            <p className="text-sm font-semibold text-gray-500">
+              {filteredAssets.length} asset
+            </p>
+          </div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+            {filteredAssets.length} / {assets.length}
+          </p>
+        </div>
+
+        <DataTable
+          columns={assetColumns}
+          rows={filteredAssets}
+          getRowKey={(asset) => asset.id}
+          emptyMessage="Nessun asset trovato con i filtri selezionati."
+          loading={dataLoading}
+          loadingMessage="Caricamento asset..."
+          className="rounded-2xl"
+          scrollClassName="max-h-[620px] overflow-auto"
+          tableClassName="text-sm"
+          headerClassName="[&_th]:px-3 [&_th]:py-3"
+          rowClassName={(_, index) => (index % 2 === 0 ? "bg-white" : "bg-gray-50/40")}
+          onRowClick={(asset) => {
+            window.location.href = `/assets/${asset.inventory_code}`;
+          }}
+          actions={{
+            header: "Apri",
+            headerClassName: "px-3 py-3",
+            cellClassName: "px-3 py-3",
+            render: () => (
+              <span className="inline-block text-gray-400 transition group-hover:translate-x-1 group-hover:text-blue-600">
+                →
+              </span>
+            ),
+          }}
+        />
+      </section>
     </main>
   );
 }

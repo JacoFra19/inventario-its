@@ -620,6 +620,14 @@ Sistema UI attualmente implementato:
 - drawer mobile apribile da topbar e chiuso dopo la navigazione;
 - route attiva evidenziata nella navigazione globale;
 - topbar compatta con contesto pagina e spazio per future azioni utente/notifiche;
+- Workspace Pattern avviato sulle pagine operative;
+- pagina Asset migrata come pagina pilota del Workspace Pattern;
+- header operativo con una sola azione primaria e azioni secondarie raggruppate;
+- toolbar azioni Asset rifinita con pulsanti uniformi e gerarchia primaria/secondaria;
+- form di creazione asset aperto su richiesta tramite azione dedicata;
+- metriche asset compatte e filtrabili;
+- filtri asset raccolti in toolbar operativa compatta;
+- introduzione tabella Asset piu' sintetica e righe leggermente piu' dense;
 - layout responsive basato su Tailwind;
 - palette neutra e moderna;
 - card, badge e sezioni operative;

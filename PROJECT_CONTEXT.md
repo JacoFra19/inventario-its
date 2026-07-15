@@ -67,6 +67,23 @@ Principi:
 
 I dettagli delle componenti disponibili sono elencati in `FEATURES.md`.
 
+## Workspace Pattern
+
+Le pagine operative devono convergere verso un Workspace Pattern compatto, introdotto inizialmente sulla pagina Asset.
+
+Gerarchia standard:
+
+- header operativo con titolo, descrizione breve e azioni;
+- una sola azione primaria chiaramente evidenziata;
+- azioni secondarie raggruppate e responsive;
+- toolbar azioni con pulsanti allineati e altezza coerente;
+- metriche essenziali compatte, con colore usato come accento e non come rumore testuale;
+- filtri operativi compatti, trattati come strumenti e non come blocchi informativi pesanti;
+- contenuto principale, in genere tabella o dettaglio;
+- form di creazione voluminosi aperti su richiesta invece che sempre visibili.
+
+I componenti condivisi introdotti per questo pattern devono essere riutilizzati nelle successive migrazioni di Stock, Eventi, Assegnatari e altre sezioni operative, evitando astrazioni non necessarie.
+
 ## UX Standards
 
 - Usare Sonner per feedback utente non bloccanti.
